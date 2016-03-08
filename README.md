@@ -12,6 +12,8 @@ or in python:
 import la_palma_overview as lpo
 lpo.save_image('/home/user/my_la_palma_image.jpg')
 ```
+![img](example_images/my_image.jpg)
+
 or when you feel sad:
 ```python
 import la_palma_overview as lpo

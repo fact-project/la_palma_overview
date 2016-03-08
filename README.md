@@ -1,18 +1,18 @@
 # la_palma_overview
 
 ## Usage
-'''bash
+```bash
 user@machine:~$ la_palma_overview -o /home/user/my_overview_image.jpg
-'''
+```
 
 or in python:
-'''python
+```python
 import la_palma_overview as lpo
 lpo.save_image('/home/user/my_la_palma_image.jpg')
-'''
+```
 
 or when you feel sad:
-'''python
+```python
 import la_palma_overview as lpo
 
 config = {
@@ -33,8 +33,7 @@ config = {
 }
 
 lpo.save_image(output_path='/home/user/now_i_feel_better.jpg', overview_config=config)
-
-'''
+```
 ## How
 collects several different images as all sky cam footage:
 

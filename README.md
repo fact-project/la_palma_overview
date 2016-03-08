@@ -38,6 +38,11 @@ config = {
 lpo.save_image(output_path='/home/user/now_i_feel_better.jpg', overview_config=config)
 ```
 ![img](example_images/now_i_feel_better.jpg)
+
+## Dependencies
+- [smart_fact_crawler](https://github.com/fact-project/smart_fact_crawler)
+- sci-kit image
+
 ## How
 collects several different images as all sky cam footage:
 

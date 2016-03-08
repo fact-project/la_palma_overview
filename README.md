@@ -1,5 +1,7 @@
 # la_palma_overview
 
+Save an overview image of the Roque observatory on La Palma.
+
 ## Usage
 ```bash
 user@machine:~$ la_palma_overview -o /home/user/my_overview_image.jpg

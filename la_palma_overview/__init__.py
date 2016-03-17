@@ -2,7 +2,7 @@
 """
 Creates an overview image of Canary island La Palma, Roque de los Muchachos.
 
-Usage: la_palma_overview -o=OUTPUT_PATH [-v]
+Usage: la_palma_overview [options]
 
 Options:
     -o --output=OUTPUT_PATH     path to write the output image
@@ -28,7 +28,7 @@ import smart_fact_crawler as sfc
 import glob
 import sys
 import requests
-from StringIO import StringIO
+import time
 
 def empty_image(rows, cols):
     return np.zeros(shape=(rows,cols,3)).astype('uint8')
@@ -135,11 +135,11 @@ def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):
 
 def download_and_resize_image_to_rows_and_cols(url, rows, cols):
     req = requests.get(url, verify=False, timeout=15)
-    img = skimage.io.imread(StringIO(req.content), format='jpg')
+    img = skimage.io.imread(io.BytesIO(req.content), format='jpg')
     img = skimage.transform.resize(img, (rows, cols))
     img = 255.0*img
     img = img.astype('uint8') 
-    return img
+    return img[...,:3]
 
 def Vprint(verbose, text):
     if verbose:
@@ -190,7 +190,7 @@ def save_image(output_path, overview_config=None, verbose=False):
                 'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg',
                 'http://www.magic.iac.es/site/weather/AllSkyCurrentImage.JPG',
                 'http://www.magic.iac.es/site/weather/can.jpg', 
-                'http://www.fact-project.org/cam/cam.php',
+                'http://fact-project.org/AllSkySources/AllSkyCurrentImage_SOURCES.png',
                 'http://www.fact-project.org/cam/lidcam.php',
                 'http://iris.not.iac.es/axis-cgi/jpg/image.cgi',
                 'http://www.tng.iac.es/webcam/get.html?resolution=640x480&compression=30&clock=1&date=1&dummy=1456393525188',
@@ -248,15 +248,14 @@ def save_image(output_path, overview_config=None, verbose=False):
     skimage.io.imsave(output_path, image_stack)
 
 def main():
-    try:
-        arguments = docopt.docopt(__doc__)
-        save_image(
-            output_path=arguments['--output'], 
-            verbose=arguments['--verbose']
-        )
+    arguments = docopt.docopt(__doc__)
+    if not arguments['--output']:
+        arguments['--output'] = time.strftime("%Y%m%d_%H%M")+".jpg"
 
-    except docopt.DocoptExit as e:
-        print(e.message)
+    save_image(
+        output_path=arguments['--output'], 
+        verbose=arguments['--verbose']
+    )
 
 if __name__ == "__main__":
     main()

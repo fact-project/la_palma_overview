@@ -1,18 +1,21 @@
 # la_palma_overview
 
+Save an overview image of the Roque observatory on La Palma.
+
 ## Usage
-'''bash
+```bash
 user@machine:~$ la_palma_overview -o /home/user/my_overview_image.jpg
-'''
+```
 
 or in python:
-'''python
+```python
 import la_palma_overview as lpo
 lpo.save_image('/home/user/my_la_palma_image.jpg')
-'''
+```
+![img](example_images/my_image.jpg)
 
 or when you feel sad:
-'''python
+```python
 import la_palma_overview as lpo
 
 config = {
@@ -33,8 +36,13 @@ config = {
 }
 
 lpo.save_image(output_path='/home/user/now_i_feel_better.jpg', overview_config=config)
+```
+![img](example_images/now_i_feel_better.jpg)
 
-'''
+## Dependencies
+- [smart_fact_crawler](https://github.com/fact-project/smart_fact_crawler)
+- sci-kit image
+
 ## How
 collects several different images as all sky cam footage:
 

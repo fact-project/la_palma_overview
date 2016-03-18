@@ -255,7 +255,7 @@ def main():
         )
 
     except docopt.DocoptExit as e:
-        print(e.message)
+        print(e)
 
 if __name__ == "__main__":
     main()

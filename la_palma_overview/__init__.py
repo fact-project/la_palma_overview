@@ -28,7 +28,6 @@ import smart_fact_crawler as sfc
 import glob
 import sys
 import requests
-from StringIO import StringIO
 
 def empty_image(rows, cols):
     return np.zeros(shape=(rows,cols,3)).astype('uint8')
@@ -135,7 +134,7 @@ def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):
 
 def download_and_resize_image_to_rows_and_cols(url, rows, cols):
     req = requests.get(url, verify=False, timeout=15)
-    img = skimage.io.imread(StringIO(req.content), format='jpg')
+    img = skimage.io.imread(io.BytesIO(req.content), format='jpg')
     img = skimage.transform.resize(img, (rows, cols))
     img = 255.0*img
     img = img.astype('uint8') 

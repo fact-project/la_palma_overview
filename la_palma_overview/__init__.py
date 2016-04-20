@@ -83,9 +83,9 @@ def smart_fact2img(rows, cols):
     out+= ' container.... ' + str(smf.container_temperature()['Current_temperature_in_C'])+' C\n'
     out+= ' camera....... ' + str(smf.camera_climate()['Avg_rel_temp_in_C']+smf.weather()['Temperature_in_C'])+' C\n'
     out+= 'Source\n'
-    out+= ' name......... ' + str(smf.current_source()['Source_Name'][0])+'\n'
-    out+= ' Azimuth...... ' + str(smf.drive()['Azimuth_in_Deg'])+' Deg\n'
-    out+= ' Zenith....... ' + str(smf.drive()['Zenith_Distance_in_Deg'])+' Deg\n'
+    out+= ' name......... ' + str(smf.current_source()['Source_Name'])+'\n'
+    out+= ' Azimuth...... ' + str(smf.drive()['pointing']['Azimuth_in_Deg'])+' Deg\n'
+    out+= ' Zenith....... ' + str(smf.drive()['pointing']['Zenith_Distance_in_Deg'])+' Deg\n'
 
     font = FontProperties()
     font.set_family('monospace')

@@ -4,8 +4,9 @@ Save an overview image of the Roque observatory on La Palma.
 
 ## Usage
 ```bash
-user@machine:~$ la_palma_overview -o /home/user/my_overview_image.jpg
+user@machine:~$ la_palma_overview
 ```
+When called without a specific output path [-o], the image filename will be created using a timestamp like 'la_palma_yyyymmdd_HHMMSS.jpg'
 
 or in python:
 ```python

@@ -2,14 +2,16 @@
 """
 Creates an overview image of Canary island La Palma, Roque de los Muchachos.
 
-Usage: la_palma_overview -o=OUTPUT_PATH [-v]
+Usage: la_palma_overview [-o=OUTPUT_PATH] [-v]
 
 Options:
     -o --output=OUTPUT_PATH     path to write the output image
     -v --verbose                tell what is currently done
 
 Notes:
-    A UTC time stamp and the FACT telescope status are put into the image.
+    - When output is not specified, a time stamp image name is created: 
+      'la_palma_yyyymmdd_HHMMSS.jpg'
+    - A UTC time stamp and the FACT telescope status are put into the image.
 """
 from __future__ import absolute_import, print_function, division
 
@@ -150,8 +152,10 @@ def save_image(output_path, overview_config=None, verbose=False):
 
     Parameters
     ----------
-    output_patht : string
+    output_patht : string [optional]
         path to save the final image
+        When not specified, a time stamp image name is created: 
+        'la_palma_yyyymmdd_HHMMSS.jpg'
 
     verbose : bool [optional]
         tell what I am doing
@@ -178,6 +182,9 @@ def save_image(output_path, overview_config=None, verbose=False):
             ]
         }
     """
+
+    if output_path is None:
+        output_path = dt.datetime.utcnow().strftime('la_palma_%Y%m%d_%H%M%S.jpg')
 
     cfg = overview_config
     if cfg is None:

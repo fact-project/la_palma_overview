@@ -137,7 +137,7 @@ def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):
 def download_and_resize_image_to_rows_and_cols(url, rows, cols):
     req = requests.get(url, verify=False, timeout=15)
     img = skimage.io.imread(io.BytesIO(req.content), format='jpg')
-    img = skimage.transform.resize(img, (rows, cols))
+    img = skimage.transform.resize(img, (rows, cols, 3))
     img = 255.0*img
     img = img.astype('uint8') 
     return img

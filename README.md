@@ -10,6 +10,11 @@ user@machine:~$ la_palma_overview_video
 ```
 Creates a directory structure as year/month/night and saves overview images all night long. At the end of the night it creates a video from the images.
 
+```bash
+user@machine:~$ la_palma_overview_video --output /path/where/to/save/the/videos --working_path /path/where/to/store/raw/images --trash_images
+```
+Working directory, output directory and trashing the raw images can be specified.
+
 ## Images
 ##### Usage
 ```bash

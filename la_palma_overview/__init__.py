@@ -17,6 +17,10 @@ from __future__ import absolute_import, print_function, division
 
 __all__ = ['save_image']
 
+import matplotlib
+matplotlib.use('Agg') 
+# Must be set to enforce matplotlib runs on machines 
+# where no x server backend is specified
 import docopt
 import skimage
 from skimage import io

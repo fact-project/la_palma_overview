@@ -1,8 +1,17 @@
 # la_palma_overview
+Make nightly overview videos of the Roque observatory on La Palma or just save single overview images
 
-Save an overview image of the Roque observatory on La Palma.
+![img](example_images/overview.gif)
 
-## Usage
+## Video
+##### Usage
+```bash
+user@machine:~$ la_palma_overview_video
+```
+Creates a directory structure as year/month/night and saves overview images all night long. At the end of the night it creates a video from the images.
+
+## Images
+##### Usage
 ```bash
 user@machine:~$ la_palma_overview
 ```
@@ -43,6 +52,8 @@ lpo.save_image(output_path='/home/user/now_i_feel_better.jpg', overview_config=c
 ## Dependencies
 - [smart_fact_crawler](https://github.com/fact-project/smart_fact_crawler)
 - sci-kit image
+- send2trash
+- avconv from libav
 
 ## How
 collects several different images as all sky cam footage:

@@ -53,13 +53,10 @@ def next_index_for_image_in_night(path2night):
     indices = np.array(indices)
     return str(indices.max() + 1).zfill(6)
 
-def video_already_created(path2night):
-    if glob.glob(os.path.join(path2night, '*.mp4')):
-        return True
-    else:
-        return False
+def already_tried_to_create_video(path2night):
+    return os.path.exists(os.path.join(path2night, 'avconv_stdout.txt'))
 
-def trash_image_sequence(path2night):
+def trash_image_sequence_in(path2night):
     for image in glob.glob(os.path.join(path2night, '*.jpg')):
         s2t.send2trash(image)
 
@@ -101,12 +98,24 @@ def make_video_from_images(path2night, video_path):
     ]
     avconv_stdout = open(os.path.join(path2night, 'avconv_stdout.txt'), 'w')
     avconv_stderr = open(os.path.join(path2night, 'avconv_stderr.txt'), 'w')
-    call(avconv_command, stdout=avconv_stdout, stderr=avconv_stderr)
+    avconv_return_value = call(avconv_command, stdout=avconv_stdout, stderr=avconv_stderr)
     avconv_stdout.close()
     avconv_stderr.close()
+    return avconv_return_value
 
 def logg_time(now):
     return now.strftime("%Y %m %d %H:%M")
+
+class VideoStopWatch(object):
+    def __init__(self, path2night):
+        self.__start_video_convert = datetime.utcnow()
+        print(logg_time(self.__start_video_convert), "Create video from images in", path2night)
+    
+    def stop(self):
+        end_video_convert = datetime.utcnow()
+        time_to_convert = end_video_convert - self.__start_video_convert
+        print(logg_time(end_video_convert), "Video is done. Took", time_to_convert.seconds, "seconds to convert.")
+                       
 
 def la_palma_overview_video(output_path=None, working_path=None, trash_images=False):
     """
@@ -159,7 +168,7 @@ def la_palma_overview_video(output_path=None, working_path=None, trash_images=Fa
         if not os.path.exists(path2night):
             os.mkdir(path2night)
 
-        if 0 <= now.hour < 7 or 17 <= now.hour < 24:
+        if 17 <= now.hour < 24 or 0 <= now.hour < 7:
             index = next_index_for_image_in_night(path2night)
             image_name = index+".jpg"
             path2image = os.path.join(path2night, image_name)
@@ -167,24 +176,21 @@ def la_palma_overview_video(output_path=None, working_path=None, trash_images=Fa
             print(logg_time(now), "Save image", path2image)
         else:
             if now.hour < 12:
-                if video_already_created(path2night):
-                    #maybe remove images
+                if already_tried_to_create_video(path2night):
                     print(logg_time(now), "Waiting for next night...")
                 else:
-                    start_video_convert = datetime.utcnow()
-                    print(logg_time(now), "Create video from images in", path2night)
-                    
-                    make_video_from_images(
-                        path2night,
-                        os.path.join(working_path, year+month+night+'.mp4')
-                    )
+                    video_path = output_path
+                    if output_path == working_path:
+                        video_path = path2night
 
-                    end_video_convert = datetime.utcnow()
-                    time_to_convert = end_video_convert - start_video_convert
-                    print(logg_time(now), "Video is done. Took", time_to_convert.seconds, "seconds to convert.")
-                    
-                    if video_already_created(path2night) and trash_images:
-                        trash_image_sequence(path2night)
+                    timer = VideoStopWatch()
+                    video_maker_return_code = make_video_from_images(
+                        path2night,
+                        os.path.join(video_path, year+month+night+'.mp4')
+                    )
+                    timer.stop()
+                    if video_maker_return_code == 0 and trash_images:
+                        trash_image_sequence_in(path2night)
             else:
                 print(logg_time(now), "Waiting for next night...")
         time.sleep(60)

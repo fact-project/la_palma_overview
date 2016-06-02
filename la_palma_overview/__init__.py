@@ -76,22 +76,35 @@ def smart_fact2img(rows, cols):
     fig = plt.figure(figsize=(cols/dpi, rows/dpi), dpi=dpi)
     ax = plt.gca()
     ax.yaxis.set_visible(False)
-    
+
     smf = sfc.SmartFact()
-    out = ''
-    out+= 'SQM\n' 
-    out+= ' Magnitude.... ' + str(sfc.sqm()['Magnitude'])+'\n'
-    out+= 'SIPM\n'
-    out+= ' power........ ' + str(sfc.currents()['Power_camera_GAPD_in_W'])+' W\n'
-    out+= ' min med max.. ' + str(sfc.currents()['Min_current_per_GAPD_in_uA'])+', '+str(sfc.currents()['Med_current_per_GAPD_in_uA'])+', '+str(sfc.currents()['Max_current_per_GAPD_in_uA'])+' uA\n'
-    out+= 'Temp\n'
-    out+= ' outside...... ' + str(smf.weather()['Temperature_in_C'])+' C\n'
-    out+= ' container.... ' + str(smf.container_temperature()['Current_temperature_in_C'])+' C\n'
-    out+= ' camera....... ' + str(smf.camera_climate()['Avg_rel_temp_in_C']+smf.weather()['Temperature_in_C'])+' C\n'
-    out+= 'Source\n'
-    out+= ' name......... ' + str(smf.current_source()['Source_Name'])+'\n'
-    out+= ' Azimuth...... ' + str(smf.drive()['pointing']['Azimuth_in_Deg'])+' Deg\n'
-    out+= ' Zenith....... ' + str(smf.drive()['pointing']['Zenith_Distance_in_Deg'])+' Deg\n'
+    out =(
+        'SQM\n'
+        ' Magnitude.... {Magnitude:.1f}\n'
+        'SIPM\n'
+        ' power........ {power:.1f} W \n'
+        ' min med max.. {min_cur:.1f}, {med_cur:.1f}, {max_cur:.1f} uA\n'
+        'Temp\n'
+        ' outside...... {out_temp:.1f} C\n'
+        ' container.... {cont_temp:.1f} C\n'
+        ' camera....... {cam_temp:.1f} C\n'
+        'Source\n'
+        ' name......... {source_name}\n'
+        ' Azimuth...... {source_az:.1f} deg\n'
+        ' Zenith....... {source_zd:.1f} deg\n'
+    ).format(
+        Magnitude=sfc.sqm()['Magnitude'],
+        power=sfc.currents()['Power_camera_GAPD_in_W'],
+        min_cur=sfc.currents()['Min_current_per_GAPD_in_uA'],
+        med_cur=sfc.currents()['Med_current_per_GAPD_in_uA'],
+        max_cur=sfc.currents()['Max_current_per_GAPD_in_uA'],
+        out_temp=smf.weather()['Temperature_in_C'],
+        cont_temp=float(smf.container_temperature()['Current_temperature_in_C']),
+        cam_temp=smf.camera_climate()['Avg_rel_temp_in_C'] + smf.weather()['Temperature_in_C'],
+        source_name=smf.current_source()['Source_Name'],
+        source_az=smf.drive()['pointing']['Azimuth_in_Deg'],
+        source_zd=smf.drive()['pointing']['Zenith_Distance_in_Deg'],
+    )
 
     font = FontProperties()
     font.set_family('monospace')

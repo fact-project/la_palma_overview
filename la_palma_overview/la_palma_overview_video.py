@@ -183,7 +183,7 @@ def la_palma_overview_video(output_path=None, working_path=None, trash_images=Fa
                     if output_path == working_path:
                         video_path = path2night
 
-                    timer = VideoStopWatch()
+                    timer = VideoStopWatch(path2night)
                     video_maker_return_code = make_video_from_images(
                         path2night,
                         os.path.join(video_path, year+month+night+'.mp4')

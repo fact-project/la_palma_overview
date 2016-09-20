@@ -77,33 +77,36 @@ def smart_fact2img(rows, cols):
     ax = plt.gca()
     ax.yaxis.set_visible(False)
 
-    smf = sfc.SmartFact()
     out =(
         'SQM\n'
         ' Magnitude.... {Magnitude:.1f}\n'
         'SIPM\n'
-        ' power........ {power:.1f} W \n'
-        ' min med max.. {min_cur:.1f}, {med_cur:.1f}, {max_cur:.1f} uA\n'
+        ' power........ {power:.1f} {power_unit:s} \n'
+        ' min med max.. {min_cur:.1f}, {med_cur:.1f}, {max_cur:.1f} {cur_unit:s}\n'
         'Temp\n'
         ' outside...... {out_temp:.1f} C\n'
         ' container.... {cont_temp:.1f} C\n'
         ' camera....... {cam_temp:.1f} C\n'
         'Source\n'
         ' name......... {source_name}\n'
-        ' Azimuth...... {source_az:.1f} deg\n'
-        ' Zenith....... {source_zd:.1f} deg\n'
+        ' Azimuth...... {source_az:.1f} {source_az_unit:s}\n'
+        ' Zenith....... {source_zd:.1f} {source_zd_unit:s}\n'
     ).format(
-        Magnitude=sfc.sqm()['Magnitude'],
-        power=sfc.currents()['Power_camera_GAPD_in_W'],
-        min_cur=sfc.currents()['Min_current_per_GAPD_in_uA'],
-        med_cur=sfc.currents()['Med_current_per_GAPD_in_uA'],
-        max_cur=sfc.currents()['Max_current_per_GAPD_in_uA'],
-        out_temp=smf.weather()['Temperature_in_C'],
-        cont_temp=float(smf.container_temperature()['Current_temperature_in_C']),
-        cam_temp=smf.camera_climate()['Avg_rel_temp_in_C'] + smf.weather()['Temperature_in_C'],
-        source_name=smf.current_source()['Source_Name'],
-        source_az=smf.drive()['pointing']['Azimuth_in_Deg'],
-        source_zd=smf.drive()['pointing']['Zenith_Distance_in_Deg'],
+        Magnitude=sfc.sqm().magnitude.value,
+        power=sfc.sipm_currents().power.value,
+        power_unit=sfc.sipm_currents().power.unit,
+        min_cur=sfc.sipm_currents().min_per_sipm.value,
+        med_cur=sfc.sipm_currents().median_per_sipm.value,
+        max_cur=sfc.sipm_currents().max_per_sipm.value,
+        cur_unit=sfc.sipm_currents().max_per_sipm.unit,
+        out_temp=sfc.weather().temperature.value,
+        cont_temp=float(sfc.container_temperature().current.value),
+        cam_temp=sfc.camera_climate().relative_temperature_mean.value + sfc.weather().temperature.value,
+        source_name=sfc.current_source().name,
+        source_az=sfc.drive()['pointing'].azimuth.value,
+        source_zd=sfc.drive()['pointing'].zenith_distance.value,
+        source_az_unit=sfc.drive()['pointing'].azimuth.unit,
+        source_zd_unit=sfc.drive()['pointing'].zenith_distance.unit,
     )
 
     font = FontProperties()

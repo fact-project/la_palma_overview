@@ -37,7 +37,7 @@ log = logging.getLogger('la_palma_overview')
 
 
 def empty_image(rows, cols):
-    return np.zeros(shape=(rows, cols, 3)).astype('uint8')
+    return np.zeros(shape=(rows, cols, 3), dtype='uint8')
 
 
 def clock2img(rows, cols):
@@ -168,11 +168,11 @@ def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):
     rows = imgs[0].shape[0]
     cols = imgs[0].shape[1]
 
-    col_stack = np.zeros(shape=(0, big_cols * cols, 3)).astype('uint8')
+    col_stack = np.zeros(shape=(0, big_cols * cols, 3), dtype='uint8')
 
     for row in range(big_rows):
 
-        row_stack = np.zeros(shape=(rows, 0, 3)).astype('uint8')
+        row_stack = np.zeros(shape=(rows, 0, 3), dtype='uint8')
 
         for col in range(big_cols):
             i = col + big_cols*row

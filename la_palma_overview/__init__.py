@@ -17,22 +17,15 @@ from __future__ import absolute_import, print_function, division
 
 __all__ = ['save_image']
 
-import matplotlib
-matplotlib.use('Agg')
-# Must be set to enforce matplotlib runs on machines
-# where no x server backend is specified
 import docopt
 import skimage
-from skimage import io
-from skimage import transform
+import skimage.io
+import io
 import datetime as dt
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
-import io
 import smart_fact_crawler as sfc
-import glob
-import sys
 import requests
 
 
@@ -93,10 +86,10 @@ def smart_fact2img(rows, cols):
     ax.yaxis.set_visible(False)
 
     currents = sfc.sipm_currents()
-    drive = sfc.drive()
+    drive_pointing = sfc.drive_pointing()
     weather = sfc.weather()
     rel_temp = sfc.camera_climate().relative_temperature_mean.value
-    cam_temp = rel_temp + weather.temperature.value,
+    cam_temp = rel_temp + weather.temperature.value
 
     out = (
         'SQM\n'
@@ -124,10 +117,10 @@ def smart_fact2img(rows, cols):
         cont_temp=float(sfc.container_temperature().current.value),
         cam_temp=cam_temp,
         source_name=sfc.current_source().name,
-        source_az=drive['pointing'].azimuth.value,
-        source_zd=drive['pointing'].zenith_distance.value,
-        source_az_unit=drive['pointing'].azimuth.unit,
-        source_zd_unit=drive['pointing'].zenith_distance.unit,
+        source_az=drive_pointing.azimuth.value,
+        source_zd=drive_pointing.zenith_distance.value,
+        source_az_unit=drive_pointing.azimuth.unit,
+        source_zd_unit=drive_pointing.zenith_distance.unit,
     )
 
     font = FontProperties()

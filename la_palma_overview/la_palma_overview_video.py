@@ -23,6 +23,8 @@ Options:
     --video-subdir=<dir>   Subdirectory for the videos [default: ]
     --image-subdir=<dir>   Subdirectory for the images [default: images]
     -t, --trash-images     Move images to trash after successfull video creation
+    -v, --verbose          More verbose log output
+    -l <f>, --logfile=<f>  If given, log also to file
 '''
 import docopt
 from datetime import datetime, timedelta
@@ -32,11 +34,16 @@ import glob
 import numpy as np
 import send2trash as s2t
 from subprocess import call
+import logging
 
-import la_palma_overview as lpo
+from . import save_image
+from .log import setup_logging
 
 
 __all__ = ['make_video_from_images', 'la_palma_overview_video']
+
+
+log = logging.getLogger('la_palma_overview')
 
 
 def current_night():
@@ -65,7 +72,7 @@ def trash_image_sequence_in(image_path):
 
 
 def make_video_from_images(image_path, video_path):
-    """
+    '''
     Makes a video from sequence of jpg images.
     The input image names must be formatted like: '%06d.jpg', e.g. 000123.jpg.
     The numbering of the image filenames must be a sequence.
@@ -87,7 +94,7 @@ def make_video_from_images(image_path, video_path):
     Dependencies
     ------------
     Needs avconv from libav
-    """
+    '''
     video_dir = os.path.dirname(video_path)
     avconv_command = [
         'avconv',
@@ -109,27 +116,6 @@ def make_video_from_images(image_path, video_path):
     return avconv_return_value
 
 
-def logg_time(now):
-    return now.strftime("%Y %m %d %H:%M")
-
-
-class VideoStopWatch(object):
-    def __init__(self, image_path):
-        self.__start_video_convert = datetime.utcnow()
-        print(
-            logg_time(self.__start_video_convert),
-            "Create video from images in", image_path
-        )
-
-    def stop(self):
-        end_video_convert = datetime.utcnow()
-        time_to_convert = end_video_convert - self.__start_video_convert
-        print(
-            logg_time(end_video_convert),
-            "Video is done. Took", time_to_convert.seconds, "seconds to convert."
-        )
-
-
 def date_path(date, base='', subdir=''):
     return os.path.join(
         base,
@@ -140,7 +126,7 @@ def date_path(date, base='', subdir=''):
     )
 
 
-def save_image(base='', subdir=''):
+def save_image_to_date_path(base='', subdir=''):
     night = current_night()
 
     output_dir = date_path(night, base=base, subdir=subdir)
@@ -151,10 +137,10 @@ def save_image(base='', subdir=''):
 
     output_path = os.path.join(output_dir, image_name)
 
-    lpo.save_image(output_path)
+    save_image(output_path)
 
 
-def save_video(
+def save_video_to_date_path(
         base='',
         subdir='',
         image_base='',
@@ -167,20 +153,24 @@ def save_video(
     output_dir = date_path(night, base=base, subdir=subdir)
     os.makedirs(output_dir, exist_ok=True)
 
+    video_path = os.path.join(output_dir, night_string + '.mp4')
+
     image_path = date_path(night, base=image_base, subdir=image_subdir)
 
-    now = datetime.utcnow()
     if already_tried_to_create_video(output_dir):
-        print(logg_time(now), 'Waiting for next night...')
+        log.info('Video already created, skipping')
     else:
-        timer = VideoStopWatch(image_path)
+        before_video = datetime.utcnow()
         video_maker_return_code = make_video_from_images(
             image_path,
-            os.path.join(output_dir, night_string + '.mp4')
+            video_path,
         )
-        timer.stop()
-        if video_maker_return_code == 0 and trash_images is True:
-            trash_image_sequence_in(image_path)
+        duration = (datetime.utcnow() - before_video).total_seconds()
+        if video_maker_return_code == 0:
+            log.info('Video {} created succesfully'.format(video_path))
+            log.info('Video creation took {} s'.format(duration))
+            if trash_images is True:
+                trash_image_sequence_in(image_path)
 
 
 def la_palma_overview_video(
@@ -234,13 +224,12 @@ def la_palma_overview_video(
     now = datetime.utcnow()
     while True:
         if now.hour >= 18 or now.hour <= 8:
-            print('Getting image')
-            save_image(image_base, image_subdir)
-            print('done')
-
+            log.info('Getting image')
+            save_image_to_date_path(image_base, image_subdir)
+            log.info('done')
         else:
             if now.hour < 12:
-                save_video(
+                save_video_to_date_path(
                     video_base,
                     video_subdir,
                     image_base,
@@ -248,14 +237,16 @@ def la_palma_overview_video(
                     trash_images=trash_images,
                 )
             else:
-                print(logg_time(now), 'Waiting for next night...')
+                log.info('Waiting for next night')
+
         time.sleep(60)
 
 
 def main():
     try:
         arguments = docopt.docopt(__doc__)
-        print(arguments)
+        setup_logging(arguments['--logfile'], arguments['--verbose'])
+
         la_palma_overview_video(
             video_base=arguments['--video-base'],
             video_subdir=arguments['--video-subdir'],

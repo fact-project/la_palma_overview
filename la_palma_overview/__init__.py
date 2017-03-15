@@ -1,22 +1,19 @@
 #!/usr/bin/env python
-"""
+'''
 Creates an overview image of Canary island La Palma, Roque de los Muchachos.
 
-Usage: la_palma_overview [-o=OUTPUT_PATH] [-v]
+Usage: la_palma_overview [options]
 
 Options:
     -o --output=OUTPUT_PATH     path to write the output image
     -v --verbose                tell what is currently done
+    -l <f>, --logfile=<f>  If given, log also to file
 
 Notes:
     - When output is not specified, a time stamp image name is created:
       'la_palma_yyyymmdd_HHMMSS.jpg'
     - A UTC time stamp and the FACT telescope status are put into the image.
-"""
-from __future__ import absolute_import, print_function, division
-
-__all__ = ['save_image']
-
+'''
 import docopt
 import skimage
 import skimage.io
@@ -28,6 +25,15 @@ from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
 import smart_fact_crawler as sfc
 import requests
+import logging
+
+from .log import setup_logging
+
+
+__all__ = ['save_image']
+
+
+log = logging.getLogger('la_palma_overview')
 
 
 def empty_image(rows, cols):
@@ -190,12 +196,7 @@ def download_and_resize_image_to_rows_and_cols(url, rows, cols):
     return img
 
 
-def Vprint(verbose, text):
-    if verbose:
-        print(text)
-
-
-def save_image(output_path, overview_config=None, verbose=False):
+def save_image(output_path, overview_config=None):
     """
     Save an La Palma overview image with time stamp and FACT telescope info
 
@@ -270,24 +271,27 @@ def save_image(output_path, overview_config=None, verbose=False):
                     cfg['img']['cols']
                 )
             )
-        except:
+            log.debug('Downloaded image from url {}'.format(url))
+        except Exception as e:
+            log.exception('Failed to get image for url {}'.format(url))
             imgs.append(empty_image(cfg['img']['rows'], cfg['img']['cols']))
-        Vprint(verbose, url)
 
     # -----------------------------------
     # Append a Smart FACT status image
     try:
         imgs.append(smart_fact2img(cfg['img']['rows'], cfg['img']['cols']))
-        Vprint(verbose, 'smart fact')
-    except:
+        log.debug('Created smartfact imaged')
+    except Exception as e:
+        log.exception('Failed to get smartfact data')
         imgs.append(empty_image(cfg['img']['rows'], cfg['img']['cols']))
 
     # -----------------------------------
     # Append a time stamp image
     try:
         imgs.append(clock2img(cfg['img']['rows'], cfg['img']['cols']))
-        Vprint(verbose, 'clock')
-    except:
+        log.debug('Created clock imaged')
+    except Exception as e:
+        log.exception('Failed to create clock image')
         imgs.append(empty_image(cfg['img']['rows'], cfg['img']['cols']))
 
     # -----------------------------------
@@ -306,14 +310,15 @@ def save_image(output_path, overview_config=None, verbose=False):
 def main():
     try:
         arguments = docopt.docopt(__doc__)
+
+        setup_logging(arguments['--logfile'], arguments['--verbose'])
+
         save_image(
             output_path=arguments['--output'],
-            verbose=arguments['--verbose']
         )
-
     except docopt.DocoptExit as e:
         print(e)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

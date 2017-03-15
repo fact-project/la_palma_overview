@@ -3,11 +3,11 @@
 Makes nightly summary videos of the Roque Observatry on La Palma.
 A FACT like folder structure is created for each new night, e.g.
 yyyy/mm/nn (nn is night here, a new night is created 12:00).
-During the night, each minute an la_palma_overview image is saved to the 
+During the night, each minute an la_palma_overview image is saved to the
 directory of the current night.
 In the morning, the image sequence is converted to a video.
 This nightly cycle will go on forever.
-If the process is interrupted, it can continue the imagesequence with the 
+If the process is interrupted, it can continue the imagesequence with the
 correct numbering at any time.
 
 Usage: la_palma_overview_video [-o=OUTPUT_PATH] [-w=WORKING_PATH] [-t]
@@ -19,28 +19,35 @@ Options:
 """
 from __future__ import print_function, absolute_import
 
-__all__ = ['make_video_from_images', 'la_palma_overview_video']
-
 import docopt
 import la_palma_overview as lpo
 from datetime import datetime, timedelta
 import time
-import os, glob
+import os
+import glob
 import numpy as np
 import send2trash as s2t
 from subprocess import call
 
+
+__all__ = ['make_video_from_images', 'la_palma_overview_video']
+
+
 def night_delay(now):
     return now - timedelta(hours=12)
+
 
 def current_year(now):
     return night_delay(now).strftime("%Y")
 
+
 def current_month(now):
     return night_delay(now).strftime("%m")
 
+
 def current_night(now):
     return night_delay(now).strftime("%d")
+
 
 def next_index_for_image_in_night(path2night):
     image_pattern = os.path.join(path2night, "*.jpg")
@@ -53,22 +60,25 @@ def next_index_for_image_in_night(path2night):
     indices = np.array(indices)
     return str(indices.max() + 1).zfill(6)
 
+
 def already_tried_to_create_video(path2night):
     return os.path.exists(os.path.join(path2night, 'avconv_stdout.txt'))
+
 
 def trash_image_sequence_in(path2night):
     for image in glob.glob(os.path.join(path2night, '*.jpg')):
         s2t.send2trash(image)
+
 
 def make_video_from_images(path2night, video_path):
     """
     Makes a video from sequence of jpg images.
     The input image names must be formatted like: '%06d.jpg', e.g. 000123.jpg.
     The numbering of the image filenames must be a sequence.
-    Next to the output video, also the stdout and stderr of the avconv 
+    Next to the output video, also the stdout and stderr of the avconv
     call is saved.
     The video quality is set to be a good compromise for the la_palma_overview
-    images. The video format is h264 mp4 and the resolution is 1920x1080 with 
+    images. The video format is h264 mp4 and the resolution is 1920x1080 with
     12fps.
 
     Parameters
@@ -86,14 +96,14 @@ def make_video_from_images(path2night, video_path):
     """
     avconv_command = [
         'avconv',
-        '-y', # force overwriting of existing output file 
-        '-framerate', '12', # 12 Frames per second
-        '-f', 'image2', 
-        '-i', os.path.join(path2night,'%06d.jpg'), 
+        '-y',  # force overwriting of existing output file
+        '-framerate', '12',  # 12 Frames per second
+        '-f', 'image2',
+        '-i',  os.path.join(path2night, '%06d.jpg'),
         '-c:v', 'h264',
-        '-s', '1920x1080', # sample images down to FullHD 1080p
-        '-crf', '23', # high quality 0 (best) to 53 (worst)
-        '-crf_max', '25', # worst quality allowed
+        '-s', '1920x1080',  # sample images down to FullHD 1080p
+        '-crf', '23',  # high quality 0 (best) to 53 (worst)
+        '-crf_max', '25',  # worst quality allowed
         video_path
     ]
     avconv_stdout = open(os.path.join(path2night, 'avconv_stdout.txt'), 'w')
@@ -103,31 +113,39 @@ def make_video_from_images(path2night, video_path):
     avconv_stderr.close()
     return avconv_return_value
 
+
 def logg_time(now):
     return now.strftime("%Y %m %d %H:%M")
+
 
 class VideoStopWatch(object):
     def __init__(self, path2night):
         self.__start_video_convert = datetime.utcnow()
-        print(logg_time(self.__start_video_convert), "Create video from images in", path2night)
-    
+        print(
+            logg_time(self.__start_video_convert),
+            "Create video from images in", path2night
+        )
+
     def stop(self):
         end_video_convert = datetime.utcnow()
         time_to_convert = end_video_convert - self.__start_video_convert
-        print(logg_time(end_video_convert), "Video is done. Took", time_to_convert.seconds, "seconds to convert.")
-                       
+        print(
+            logg_time(end_video_convert),
+            "Video is done. Took", time_to_convert.seconds, "seconds to convert."
+        )
+
 
 def la_palma_overview_video(output_path=None, working_path=None, trash_images=False):
     """
     Makes nightly summary videos of the Roque Observatry on La Palma.
     A FACT like folder structure is created for each new night, e.g.
     yyyy/mm/nn (nn is night here, a new night is created 12:00).
-    During the night, each minute an la_palma_overview image is saved to the 
+    During the night, each minute an la_palma_overview image is saved to the
     directory of the current night.
     In the morning, the image sequence is converted to a video.
     This nightly cycle will go on forever.
-    If the process is interrupted, it can continue the imagesequence with the 
-    correct numbering at any time. 
+    If the process is interrupted, it can continue the imagesequence with the
+    correct numbering at any time.
 
     Parameters
     ----------
@@ -195,17 +213,19 @@ def la_palma_overview_video(output_path=None, working_path=None, trash_images=Fa
                 print(logg_time(now), "Waiting for next night...")
         time.sleep(60)
 
+
 def main():
     try:
         arguments = docopt.docopt(__doc__)
         la_palma_overview_video(
-            output_path=arguments['--output'], 
+            output_path=arguments['--output'],
             working_path=arguments['--working_path'],
             trash_images=arguments['--trash_images']
         )
 
     except docopt.DocoptExit as e:
         print(e)
+
 
 if __name__ == "__main__":
     main()

@@ -223,7 +223,7 @@ def la_palma_overview_video(
 
     now = datetime.utcnow()
     while True:
-        if now.hour >= 18 or now.hour <= 8:
+        if now.hour >= 17 or now.hour <= 7:
             log.info('Getting image')
             save_image_to_date_path(image_base, image_subdir)
             log.info('done')

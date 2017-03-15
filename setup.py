@@ -1,6 +1,6 @@
 from distutils.core import setup
 
-description = '''Acquieres images of La Palma and stacks them into one image.
+description = '''Acquires images of La Palma and stacks them into one image.
 Also it can create nightly videos using libav and avconv.
 '''
 

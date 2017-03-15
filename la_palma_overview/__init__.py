@@ -20,6 +20,7 @@ __all__ = ['save_image']
 import docopt
 import skimage
 import skimage.io
+import skimage.transform
 import io
 import datetime as dt
 import numpy as np

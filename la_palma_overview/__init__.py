@@ -26,6 +26,9 @@ from matplotlib.font_manager import FontProperties
 import smart_fact_crawler as sfc
 import requests
 import logging
+import warnings
+
+from multiprocessing.pool import ThreadPool
 
 from .log import setup_logging
 
@@ -187,12 +190,29 @@ def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):
     return col_stack
 
 
-def download_and_resize_image_to_rows_and_cols(url, rows, cols):
-    req = requests.get(url, verify=False, timeout=15)
-    img = skimage.io.imread(io.BytesIO(req.content), format='jpg')
-    img = skimage.transform.resize(img, (rows, cols, 3))
-    img = 255.0*img
-    img = img.astype('uint8')
+def download_and_resize_image(url, rows, cols, fmt='jpg', fallback=True):
+    '''
+    Download image at url.
+    Resize to size cols x rows
+    if fallback is True, a black image is returned in case
+    the request fails, else an exception is raised
+    '''
+    try:
+        req = requests.get(url, verify=False, timeout=15)
+
+        img = skimage.io.imread(io.BytesIO(req.content), format=fmt)
+        img = skimage.transform.resize(img, (rows, cols, 3))
+        img = (img * 255).astype('uint8')
+
+        log.debug('Downloaded image from url {}'.format(url))
+
+    except Exception as e:
+        if fallback is True:
+            log.exception('Failed to get image for url {}'.format(url))
+            img = empty_image(rows, cols)
+        else:
+            raise IOError from e
+
     return img
 
 
@@ -257,24 +277,14 @@ def save_image(output_path, overview_config=None):
         }
 
     # -----------------------------------
-    # the single image tiles of the stacked image are collected here
-    imgs = []
-
-    # -----------------------------------
     # Collect all the images listed in the urls
-    for url in cfg['image_urls']:
-        try:
-            imgs.append(
-                download_and_resize_image_to_rows_and_cols(
-                    url,
-                    cfg['img']['rows'],
-                    cfg['img']['cols']
-                )
-            )
-            log.debug('Downloaded image from url {}'.format(url))
-        except Exception as e:
-            log.exception('Failed to get image for url {}'.format(url))
-            imgs.append(empty_image(cfg['img']['rows'], cfg['img']['cols']))
+    with ThreadPool(6) as pool:
+        imgs = pool.map(
+            lambda url: download_and_resize_image(
+                url, cfg['img']['rows'], cfg['img']['cols']
+            ),
+            cfg['image_urls']
+        )
 
     # -----------------------------------
     # Append a Smart FACT status image

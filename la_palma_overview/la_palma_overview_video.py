@@ -221,8 +221,8 @@ def la_palma_overview_video(
     video_base = video_base or os.getcwd()
     image_base = image_base or os.getcwd()
 
-    now = datetime.utcnow()
     while True:
+        now = datetime.utcnow()
         if now.hour >= 17 or now.hour <= 7:
             log.info('Getting image')
             save_image_to_date_path(image_base, image_subdir)

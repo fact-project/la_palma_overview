@@ -120,8 +120,8 @@ def date_path(date, base='', subdir=''):
     return os.path.join(
         base,
         str(date.year),
-        str(date.month),
-        str(date.day),
+        '{:02d}'.format(date.month),
+        '{:02d}'.format(date.day),
         subdir,
     )
 

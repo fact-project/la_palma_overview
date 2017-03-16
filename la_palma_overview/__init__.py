@@ -1,42 +1,47 @@
 #!/usr/bin/env python
-"""
+'''
 Creates an overview image of Canary island La Palma, Roque de los Muchachos.
 
-Usage: la_palma_overview [-o=OUTPUT_PATH] [-v]
+Usage: la_palma_overview [options]
 
 Options:
     -o --output=OUTPUT_PATH     path to write the output image
     -v --verbose                tell what is currently done
+    -l <f>, --logfile=<f>  If given, log also to file
 
 Notes:
-    - When output is not specified, a time stamp image name is created: 
+    - When output is not specified, a time stamp image name is created:
       'la_palma_yyyymmdd_HHMMSS.jpg'
     - A UTC time stamp and the FACT telescope status are put into the image.
-"""
-from __future__ import absolute_import, print_function, division
-
-__all__ = ['save_image']
-
-import matplotlib
-matplotlib.use('Agg') 
-# Must be set to enforce matplotlib runs on machines 
-# where no x server backend is specified
+'''
 import docopt
 import skimage
-from skimage import io
-from skimage import transform
+import skimage.io
+import skimage.transform
+import io
 import datetime as dt
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
-import io
 import smart_fact_crawler as sfc
-import glob
-import sys
 import requests
+import logging
+import warnings
+
+from multiprocessing.pool import ThreadPool
+
+from .log import setup_logging
+
+
+__all__ = ['save_image']
+
+
+log = logging.getLogger('la_palma_overview')
+
 
 def empty_image(rows, cols):
-    return np.zeros(shape=(rows,cols,3)).astype('uint8')
+    return np.zeros(shape=(rows, cols, 3), dtype='uint8')
+
 
 def clock2img(rows, cols):
 
@@ -44,18 +49,22 @@ def clock2img(rows, cols):
     fig = plt.figure(figsize=(cols/dpi, rows/dpi), dpi=dpi)
     ax = plt.gca()
     ax.yaxis.set_visible(False)
-    
-    ax.text(0.5, 0.7, dt.datetime.utcnow().strftime('%H:%M:%S'),
+
+    ax.text(
+        0.5, 0.7, dt.datetime.utcnow().strftime('%H:%M:%S'),
         horizontalalignment='center',
         verticalalignment='center',
         fontsize=100, color='red',
-        transform=ax.transAxes)
+        transform=ax.transAxes,
+    )
 
-    ax.text(0.5, 0.3, dt.datetime.utcnow().strftime('%Y.%m.%d'),
+    ax.text(
+        0.5, 0.3, dt.datetime.utcnow().strftime('%Y.%m.%d'),
         horizontalalignment='center',
         verticalalignment='center',
         fontsize=80, color='red',
-        transform=ax.transAxes)
+        transform=ax.transAxes,
+    )
 
     ax.spines['top'].set_color('none')
     ax.spines['right'].set_color('none')
@@ -64,20 +73,35 @@ def clock2img(rows, cols):
     ax.patch.set_facecolor('black')
 
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=dpi, transparent=False, frameon=False, facecolor='black', edgecolor='none')
+    plt.savefig(
+        buf,
+        format='png',
+        dpi=dpi,
+        transparent=False,
+        frameon=False,
+        facecolor='black',
+        edgecolor='none',
+    )
     buf.seek(0)
     plt.close(fig)
 
-    return (skimage.io.imread(buf)[:,:,0:3]).astype('uint8')
+    return (skimage.io.imread(buf)[:, :, 0:3]).astype('uint8')
+
 
 def smart_fact2img(rows, cols):
-    
+
     dpi = 96
     fig = plt.figure(figsize=(cols/dpi, rows/dpi), dpi=dpi)
     ax = plt.gca()
     ax.yaxis.set_visible(False)
 
-    out =(
+    currents = sfc.sipm_currents()
+    drive_pointing = sfc.drive_pointing()
+    weather = sfc.weather()
+    rel_temp = sfc.camera_climate().relative_temperature_mean.value
+    cam_temp = rel_temp + weather.temperature.value
+
+    out = (
         'SQM\n'
         ' Magnitude.... {Magnitude:.1f}\n'
         'SIPM\n'
@@ -93,30 +117,32 @@ def smart_fact2img(rows, cols):
         ' Zenith....... {source_zd:.1f} {source_zd_unit:s}\n'
     ).format(
         Magnitude=sfc.sqm().magnitude.value,
-        power=sfc.sipm_currents().power.value,
-        power_unit=sfc.sipm_currents().power.unit,
-        min_cur=sfc.sipm_currents().min_per_sipm.value,
-        med_cur=sfc.sipm_currents().median_per_sipm.value,
-        max_cur=sfc.sipm_currents().max_per_sipm.value,
-        cur_unit=sfc.sipm_currents().max_per_sipm.unit,
-        out_temp=sfc.weather().temperature.value,
+        power=currents.power.value,
+        power_unit=currents.power.unit,
+        min_cur=currents.min_per_sipm.value,
+        med_cur=currents.median_per_sipm.value,
+        max_cur=currents.max_per_sipm.value,
+        cur_unit=currents.max_per_sipm.unit,
+        out_temp=weather.temperature.value,
         cont_temp=float(sfc.container_temperature().current.value),
-        cam_temp=sfc.camera_climate().relative_temperature_mean.value + sfc.weather().temperature.value,
+        cam_temp=cam_temp,
         source_name=sfc.current_source().name,
-        source_az=sfc.drive()['pointing'].azimuth.value,
-        source_zd=sfc.drive()['pointing'].zenith_distance.value,
-        source_az_unit=sfc.drive()['pointing'].azimuth.unit,
-        source_zd_unit=sfc.drive()['pointing'].zenith_distance.unit,
+        source_az=drive_pointing.azimuth.value,
+        source_zd=drive_pointing.zenith_distance.value,
+        source_az_unit=drive_pointing.azimuth.unit,
+        source_zd_unit=drive_pointing.zenith_distance.unit,
     )
 
     font = FontProperties()
     font.set_family('monospace')
-    ax.text(0, 0.5, out,
+    ax.text(
+        0, 0.5, out,
         verticalalignment='center',
         fontsize=20, color='red',
         horizontalalignment='left',
         fontproperties=font,
-        transform=ax.transAxes)
+        transform=ax.transAxes,
+    )
 
     ax.spines['top'].set_color('none')
     ax.spines['right'].set_color('none')
@@ -125,22 +151,31 @@ def smart_fact2img(rows, cols):
     ax.patch.set_facecolor('black')
 
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=dpi, transparent=False, frameon=False, facecolor='black', edgecolor='none')
+    plt.savefig(
+        buf,
+        format='png',
+        dpi=dpi,
+        transparent=False,
+        frameon=False,
+        facecolor='black',
+        edgecolor='none',
+    )
     buf.seek(0)
     plt.close(fig)
-    
-    return (skimage.io.imread(buf)[:,:,0:3]).astype('uint8')   
+
+    return (skimage.io.imread(buf)[:, :, 0:3]).astype('uint8')
+
 
 def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):
 
     rows = imgs[0].shape[0]
     cols = imgs[0].shape[1]
 
-    col_stack = np.zeros(shape=(0,big_cols*cols,3)).astype('uint8')
+    col_stack = np.zeros(shape=(0, big_cols * cols, 3), dtype='uint8')
 
     for row in range(big_rows):
-            
-        row_stack = np.zeros(shape=(rows,0,3)).astype('uint8')
+
+        row_stack = np.zeros(shape=(rows, 0, 3), dtype='uint8')
 
         for col in range(big_cols):
             i = col + big_cols*row
@@ -154,19 +189,34 @@ def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):
 
     return col_stack
 
-def download_and_resize_image_to_rows_and_cols(url, rows, cols):
-    req = requests.get(url, verify=False, timeout=15)
-    img = skimage.io.imread(io.BytesIO(req.content), format='jpg')
-    img = skimage.transform.resize(img, (rows, cols, 3))
-    img = 255.0*img
-    img = img.astype('uint8') 
+
+def download_and_resize_image(url, rows, cols, fmt='jpg', fallback=True):
+    '''
+    Download image at url.
+    Resize to size cols x rows
+    if fallback is True, a black image is returned in case
+    the request fails, else an exception is raised
+    '''
+    try:
+        req = requests.get(url, verify=False, timeout=15)
+
+        img = skimage.io.imread(io.BytesIO(req.content), format=fmt)
+        img = skimage.transform.resize(img, (rows, cols, 3))
+        img = (img * 255).astype('uint8')
+
+        log.debug('Downloaded image from url {}'.format(url))
+
+    except Exception as e:
+        if fallback is True:
+            log.exception('Failed to get image for url {}'.format(url))
+            img = empty_image(rows, cols)
+        else:
+            raise IOError from e
+
     return img
 
-def Vprint(verbose, text):
-    if verbose:
-        print(text)
 
-def save_image(output_path, overview_config=None, verbose=False):
+def save_image(output_path, overview_config=None):
     """
     Save an La Palma overview image with time stamp and FACT telescope info
 
@@ -174,7 +224,7 @@ def save_image(output_path, overview_config=None, verbose=False):
     ----------
     output_patht : string [optional]
         path to save the final image
-        When not specified, a time stamp image name is created: 
+        When not specified, a time stamp image name is created:
         'la_palma_yyyymmdd_HHMMSS.jpg'
 
     verbose : bool [optional]
@@ -192,7 +242,7 @@ def save_image(output_path, overview_config=None, verbose=False):
                 'http://fact-project.org/cam/skycam.php',
                 'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg',
                 'http://www.magic.iac.es/site/weather/AllSkyCurrentImage.JPG',
-                'http://www.magic.iac.es/site/weather/can.jpg', 
+                'http://www.magic.iac.es/site/weather/can.jpg',
                 'http://www.fact-project.org/cam/cam.php',
                 'http://www.fact-project.org/cam/lidcam.php',
                 'http://iris.not.iac.es/axis-cgi/jpg/image.cgi',
@@ -215,74 +265,70 @@ def save_image(output_path, overview_config=None, verbose=False):
                 'http://fact-project.org/cam/skycam.php',
                 'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg',
                 'http://www.magic.iac.es/site/weather/AllSkyCurrentImage.JPG',
-                'http://www.magic.iac.es/site/weather/can.jpg', 
+                'http://www.magic.iac.es/site/weather/can.jpg',
                 'http://www.fact-project.org/cam/cam.php',
                 'http://www.fact-project.org/cam/lidcam.php',
                 'http://iris.not.iac.es/axis-cgi/jpg/image.cgi',
                 'http://www.tng.iac.es/webcam/get.html?resolution=640x480&compression=30&clock=1&date=1&dummy=1456393525188',
-                #'http://www.gtc.iac.es/multimedia/netcam/camaraExt.jpg',
+                # 'http://www.gtc.iac.es/multimedia/netcam/camaraExt.jpg',
                 'http://www.magic.iac.es/site/weather/lastHUM6t.jpg',
                 'http://www.magic.iac.es/site/weather/lastWPK6t.jpg'
             ]
         }
 
-    #-----------------------------------
-    # the single image tiles of the stacked image are collected here
-    imgs = []
-
-    #-----------------------------------
+    # -----------------------------------
     # Collect all the images listed in the urls
-    for url in cfg['image_urls']:
-        try:
-            imgs.append(
-                download_and_resize_image_to_rows_and_cols(
-                    url, 
-                    cfg['img']['rows'], 
-                    cfg['img']['cols']
-                )
-            ) 
-        except:
-            imgs.append(empty_image(cfg['img']['rows'], cfg['img']['cols']))
-        Vprint(verbose, url)
+    with ThreadPool(6) as pool:
+        imgs = pool.map(
+            lambda url: download_and_resize_image(
+                url, cfg['img']['rows'], cfg['img']['cols']
+            ),
+            cfg['image_urls']
+        )
 
-    #-----------------------------------
+    # -----------------------------------
     # Append a Smart FACT status image
     try:
         imgs.append(smart_fact2img(cfg['img']['rows'], cfg['img']['cols']))
-        Vprint(verbose, 'smart fact')
-    except:
+        log.debug('Created smartfact imaged')
+    except Exception as e:
+        log.exception('Failed to get smartfact data')
         imgs.append(empty_image(cfg['img']['rows'], cfg['img']['cols']))
 
-    #-----------------------------------
+    # -----------------------------------
     # Append a time stamp image
     try:
         imgs.append(clock2img(cfg['img']['rows'], cfg['img']['cols']))
-        Vprint(verbose, 'clock')
-    except:
+        log.debug('Created clock imaged')
+    except Exception as e:
+        log.exception('Failed to create clock image')
         imgs.append(empty_image(cfg['img']['rows'], cfg['img']['cols']))
 
-    #-----------------------------------
+    # -----------------------------------
     # create stacked image from list of single images
     image_stack = stack_image_list_into_rows_and_cols(
-        imgs, 
-        cfg['stacked_image']['rows'], 
+        imgs,
+        cfg['stacked_image']['rows'],
         cfg['stacked_image']['cols']
     )
 
-    #-----------------------------------
+    # -----------------------------------
     # save the stacked image
     skimage.io.imsave(output_path, image_stack)
+
 
 def main():
     try:
         arguments = docopt.docopt(__doc__)
-        save_image(
-            output_path=arguments['--output'], 
-            verbose=arguments['--verbose']
-        )
 
+        setup_logging(arguments['--logfile'], arguments['--verbose'])
+
+        save_image(
+            output_path=arguments['--output'],
+        )
     except docopt.DocoptExit as e:
         print(e)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main()

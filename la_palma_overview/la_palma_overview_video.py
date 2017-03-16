@@ -1,49 +1,57 @@
 # -*- encoding:utf-8 -*-
-"""
+'''
 Makes nightly summary videos of the Roque Observatry on La Palma.
-A FACT like folder structure is created for each new night, e.g.
-yyyy/mm/nn (nn is night here, a new night is created 12:00).
-During the night, each minute an la_palma_overview image is saved to the 
+
+A FACT like folder structure is created for each new night.
+
+Single images are saved to <image-base>/YYYY/MM/NN/<image-subdir>,
+Videos are saved to <video-base>/YYYY/MM/NN/<video-subdir>,
+where NN is the date for a date switch at noon.
+
+During the night, each minute an la_palma_overview image is saved to the
 directory of the current night.
 In the morning, the image sequence is converted to a video.
 This nightly cycle will go on forever.
-If the process is interrupted, it can continue the imagesequence with the 
+If the process is interrupted, it can continue the image sequence with the
 correct numbering at any time.
 
-Usage: la_palma_overview_video [-o=OUTPUT_PATH] [-w=WORKING_PATH] [-t]
+Usage: la_palma_overview_video [options]
 
 Options:
-    -o --output=OUTPUT_PATH           path to save the output videos
-    -w --working_path=WORKING_PATH    path to save the raw image sequences
-    -t --trash_images                 trash image sequence after creating video
-"""
-from __future__ import print_function, absolute_import
-
-__all__ = ['make_video_from_images', 'la_palma_overview_video']
-
+    --video-base=<dir>     Base directory for the videos
+    --image-base=<dir>     Base directory for the images
+    --video-subdir=<dir>   Subdirectory for the videos [default: ]
+    --image-subdir=<dir>   Subdirectory for the images [default: images]
+    -t, --trash-images     Move images to trash after successfull video creation
+    -v, --verbose          More verbose log output
+    -l <f>, --logfile=<f>  If given, log also to file
+'''
 import docopt
-import la_palma_overview as lpo
 from datetime import datetime, timedelta
 import time
-import os, glob
+import os
+import glob
 import numpy as np
 import send2trash as s2t
 from subprocess import call
+import logging
 
-def night_delay(now):
-    return now - timedelta(hours=12)
+from . import save_image
+from .log import setup_logging
 
-def current_year(now):
-    return night_delay(now).strftime("%Y")
 
-def current_month(now):
-    return night_delay(now).strftime("%m")
+__all__ = ['make_video_from_images', 'la_palma_overview_video']
 
-def current_night(now):
-    return night_delay(now).strftime("%d")
 
-def next_index_for_image_in_night(path2night):
-    image_pattern = os.path.join(path2night, "*.jpg")
+log = logging.getLogger('la_palma_overview')
+
+
+def current_night():
+    return (datetime.utcnow() - timedelta(hours=12)).date()
+
+
+def next_index_for_image_in_night(image_path):
+    image_pattern = os.path.join(image_path, "*.jpg")
     indices = []
     for image_name in glob.glob(image_pattern):
         image_index = image_name[-10:-4]
@@ -53,27 +61,30 @@ def next_index_for_image_in_night(path2night):
     indices = np.array(indices)
     return str(indices.max() + 1).zfill(6)
 
-def already_tried_to_create_video(path2night):
-    return os.path.exists(os.path.join(path2night, 'avconv_stdout.txt'))
 
-def trash_image_sequence_in(path2night):
-    for image in glob.glob(os.path.join(path2night, '*.jpg')):
+def already_tried_to_create_video(video_dir):
+    return os.path.exists(os.path.join(video_dir, 'avconv_stdout.txt'))
+
+
+def trash_image_sequence_in(image_path):
+    for image in glob.glob(os.path.join(image_path, '*.jpg')):
         s2t.send2trash(image)
 
-def make_video_from_images(path2night, video_path):
-    """
+
+def make_video_from_images(image_path, video_path):
+    '''
     Makes a video from sequence of jpg images.
     The input image names must be formatted like: '%06d.jpg', e.g. 000123.jpg.
     The numbering of the image filenames must be a sequence.
-    Next to the output video, also the stdout and stderr of the avconv 
+    Next to the output video, also the stdout and stderr of the avconv
     call is saved.
     The video quality is set to be a good compromise for the la_palma_overview
-    images. The video format is h264 mp4 and the resolution is 1920x1080 with 
+    images. The video format is h264 mp4 and the resolution is 1920x1080 with
     12fps.
 
     Parameters
     ----------
-    path2night : string
+    image_path : string
         Path to the directory containing the image sequence
 
     video_path : string
@@ -83,61 +94,121 @@ def make_video_from_images(path2night, video_path):
     Dependencies
     ------------
     Needs avconv from libav
-    """
+    '''
+    video_dir = os.path.dirname(video_path)
     avconv_command = [
         'avconv',
-        '-y', # force overwriting of existing output file 
-        '-framerate', '12', # 12 Frames per second
-        '-f', 'image2', 
-        '-i', os.path.join(path2night,'%06d.jpg'), 
+        '-y',                # force overwriting of existing output file
+        '-framerate', '12',  # 12 Frames per second
+        '-f', 'image2',
+        '-i',  os.path.join(image_path, '%06d.jpg'),
         '-c:v', 'h264',
-        '-s', '1920x1080', # sample images down to FullHD 1080p
-        '-crf', '23', # high quality 0 (best) to 53 (worst)
-        '-crf_max', '25', # worst quality allowed
+        '-s', '1920x1080',   # sample images down to FullHD 1080p
+        '-crf', '23',        # high quality 0 (best) to 53 (worst)
+        '-crf_max', '25',    # worst quality allowed
         video_path
     ]
-    avconv_stdout = open(os.path.join(path2night, 'avconv_stdout.txt'), 'w')
-    avconv_stderr = open(os.path.join(path2night, 'avconv_stderr.txt'), 'w')
+    avconv_stdout = open(os.path.join(video_dir, 'avconv_stdout.txt'), 'w')
+    avconv_stderr = open(os.path.join(video_dir, 'avconv_stderr.txt'), 'w')
     avconv_return_value = call(avconv_command, stdout=avconv_stdout, stderr=avconv_stderr)
     avconv_stdout.close()
     avconv_stderr.close()
     return avconv_return_value
 
-def logg_time(now):
-    return now.strftime("%Y %m %d %H:%M")
 
-class VideoStopWatch(object):
-    def __init__(self, path2night):
-        self.__start_video_convert = datetime.utcnow()
-        print(logg_time(self.__start_video_convert), "Create video from images in", path2night)
-    
-    def stop(self):
-        end_video_convert = datetime.utcnow()
-        time_to_convert = end_video_convert - self.__start_video_convert
-        print(logg_time(end_video_convert), "Video is done. Took", time_to_convert.seconds, "seconds to convert.")
-                       
+def date_path(date, base='', subdir=''):
+    return os.path.join(
+        base,
+        str(date.year),
+        str(date.month),
+        str(date.day),
+        subdir,
+    )
 
-def la_palma_overview_video(output_path=None, working_path=None, trash_images=False):
-    """
+
+def save_image_to_date_path(base='', subdir=''):
+    night = current_night()
+
+    output_dir = date_path(night, base=base, subdir=subdir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    index = next_index_for_image_in_night(output_dir)
+    image_name = index + '.jpg'
+
+    output_path = os.path.join(output_dir, image_name)
+
+    save_image(output_path)
+
+
+def save_video_to_date_path(
+        base='',
+        subdir='',
+        image_base='',
+        image_subdir='',
+        trash_images=False,
+        ):
+    night = current_night()
+    night_string = night.strftime('%Y%m%d')
+
+    output_dir = date_path(night, base=base, subdir=subdir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    video_path = os.path.join(output_dir, night_string + '.mp4')
+
+    image_path = date_path(night, base=image_base, subdir=image_subdir)
+
+    if already_tried_to_create_video(output_dir):
+        log.info('Video already created, skipping')
+    else:
+        before_video = datetime.utcnow()
+        video_maker_return_code = make_video_from_images(
+            image_path,
+            video_path,
+        )
+        duration = (datetime.utcnow() - before_video).total_seconds()
+        if video_maker_return_code == 0:
+            log.info('Video {} created succesfully'.format(video_path))
+            log.info('Video creation took {} s'.format(duration))
+            if trash_images is True:
+                trash_image_sequence_in(image_path)
+
+
+def la_palma_overview_video(
+        video_base=None,
+        video_subdir='',
+        image_base=None,
+        image_subdir='images',
+        trash_images=False,
+        ):
+    '''
     Makes nightly summary videos of the Roque Observatry on La Palma.
+
     A FACT like folder structure is created for each new night, e.g.
-    yyyy/mm/nn (nn is night here, a new night is created 12:00).
-    During the night, each minute an la_palma_overview image is saved to the 
+    <base>/yyyy/mm/nn/<subdir> (nn is night here, a new night is created 12:00).
+
+    During the night, each minute an la_palma_overview image is saved to the
     directory of the current night.
     In the morning, the image sequence is converted to a video.
     This nightly cycle will go on forever.
-    If the process is interrupted, it can continue the imagesequence with the 
-    correct numbering at any time. 
+
+    If the process is interrupted, it can continue the image sequence with the
+    correct numbering at any time.
 
     Parameters
     ----------
-    output_patht : string [optional]
-        Directory to save the final video to.
-        Default is the working_path.
+    video_base : string [optional]
+        Base directory for the videos, YYYY/MM/DD structure is created from there
+        Default is the the cwd
 
-    working_path : string [optional]
-        Directory to collect raw image sequences in.
-        Default is the current working directory.
+    video_subdir : string [optional]
+        subdirectory after YYYY/MM/DD for the video, default is no subdirectory
+
+    image_base : string [optional]
+        Base directory for the images, YYYY/MM/DD structure is created from there
+        Default is the the cwd
+
+    image_subdir : string [optional]
+        subdirectory after YYYY/MM/DD for the images, default is "images"
 
     trash_images : bool [optional]
         Moves the raw image sequence to the trash after the video is created.
@@ -145,67 +216,48 @@ def la_palma_overview_video(output_path=None, working_path=None, trash_images=Fa
     Dependencies
     ------------
     avconv from libav
-    """
-    if working_path is None:
-        working_path = os.getcwd()
+    '''
 
-    if output_path is None:
-        output_path = working_path
+    video_base = video_base or os.getcwd()
+    image_base = image_base or os.getcwd()
 
+    now = datetime.utcnow()
     while True:
-        now = datetime.utcnow()
-
-        year = current_year(now)
-        path2year = os.path.join(working_path, year)
-        if not os.path.exists(path2year):
-            os.mkdir(path2year)
-        month = current_month(now)
-        path2month = os.path.join(path2year, month)
-        if not os.path.exists(path2month):
-            os.mkdir(path2month)
-        night = current_night(now)
-        path2night = os.path.join(path2month, night)
-        if not os.path.exists(path2night):
-            os.mkdir(path2night)
-
-        if 17 <= now.hour < 24 or 0 <= now.hour < 7:
-            index = next_index_for_image_in_night(path2night)
-            image_name = index+".jpg"
-            path2image = os.path.join(path2night, image_name)
-            lpo.save_image(path2image)
-            print(logg_time(now), "Save image", path2image)
+        if now.hour >= 17 or now.hour <= 7:
+            log.info('Getting image')
+            save_image_to_date_path(image_base, image_subdir)
+            log.info('done')
         else:
             if now.hour < 12:
-                if already_tried_to_create_video(path2night):
-                    print(logg_time(now), "Waiting for next night...")
-                else:
-                    video_path = output_path
-                    if output_path == working_path:
-                        video_path = path2night
-
-                    timer = VideoStopWatch(path2night)
-                    video_maker_return_code = make_video_from_images(
-                        path2night,
-                        os.path.join(video_path, year+month+night+'.mp4')
-                    )
-                    timer.stop()
-                    if video_maker_return_code == 0 and trash_images:
-                        trash_image_sequence_in(path2night)
+                save_video_to_date_path(
+                    video_base,
+                    video_subdir,
+                    image_base,
+                    image_subdir,
+                    trash_images=trash_images,
+                )
             else:
-                print(logg_time(now), "Waiting for next night...")
+                log.info('Waiting for next night')
+
         time.sleep(60)
+
 
 def main():
     try:
         arguments = docopt.docopt(__doc__)
+        setup_logging(arguments['--logfile'], arguments['--verbose'])
+
         la_palma_overview_video(
-            output_path=arguments['--output'], 
-            working_path=arguments['--working_path'],
-            trash_images=arguments['--trash_images']
+            video_base=arguments['--video-base'],
+            video_subdir=arguments['--video-subdir'],
+            image_base=arguments['--image-base'],
+            image_subdir=arguments['--image-subdir'],
+            trash_images=arguments['--trash-images']
         )
 
     except docopt.DocoptExit as e:
         print(e)
+
 
 if __name__ == "__main__":
     main()

@@ -77,7 +77,7 @@ def clock2img(rows, cols):
                 transform=ax.transAxes,
             )
     except:
-        log.exception('exception in clock2img:')
+        log.exception("Could't get run_id.")
 
     ax.spines['top'].set_color('none')
     ax.spines['right'].set_color('none')

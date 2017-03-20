@@ -66,6 +66,20 @@ def clock2img(rows, cols):
         transform=ax.transAxes,
     )
 
+    try:
+        #run_id = sfc.main_page().run_id
+        run_id = 5
+        if run_id is not None:
+            ax.text(
+                0.5, 0.0, 'Run {0: 3d}'.format(run_id),
+                horizontalalignment='center',
+                verticalalignment='center',
+                fontsize=60, color='red',
+                transform=ax.transAxes,
+            )
+    except:
+        log.exception('exception in clock2img:')
+
     ax.spines['top'].set_color('none')
     ax.spines['right'].set_color('none')
     ax.spines['left'].set_color('none')

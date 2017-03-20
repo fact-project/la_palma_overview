@@ -6,7 +6,7 @@ Also it can create nightly videos using libav and avconv.
 
 setup(
     name='la_palma_overview',
-    version='0.1.0',
+    version='0.1.1',
     description=description,
     url='https://github.com/fact-project/la_palma_overview.git',
     author='Sebastian Mueller,Maximilian Noethe',

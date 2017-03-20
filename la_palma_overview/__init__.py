@@ -67,8 +67,7 @@ def clock2img(rows, cols):
     )
 
     try:
-        #run_id = sfc.main_page().run_id
-        run_id = 5
+        run_id = sfc.main_page().run_id
         if run_id is not None:
             ax.text(
                 0.5, 0.0, 'Run {0: 3d}'.format(run_id),

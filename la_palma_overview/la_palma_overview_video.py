@@ -119,7 +119,7 @@ def make_video_from_images(image_path, video_path):
 def date_path(date, base='', subdir=''):
     return os.path.join(
         base,
-        str(date.year),
+        '{:04d}'.format(date.year),
         '{:02d}'.format(date.month),
         '{:02d}'.format(date.day),
         subdir,

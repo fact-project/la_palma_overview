@@ -19,7 +19,7 @@ setup(
         'docopt',
         'scikit-image',
         'requests',
-        'smart_fact_crawler==0.3.0',
+        'smart_fact_crawler==0.3.1',
         'send2trash',
     ],
     entry_points={'console_scripts': [

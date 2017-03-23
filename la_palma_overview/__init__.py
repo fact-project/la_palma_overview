@@ -27,10 +27,12 @@ import smart_fact_crawler as sfc
 import requests
 import logging
 import warnings
+import time
 
 from multiprocessing.pool import ThreadPool
 
 from .log import setup_logging
+from selenium import webdriver
 
 
 __all__ = ['save_image']
@@ -220,11 +222,24 @@ def download_and_resize_image(url, rows, cols, fmt='jpg', fallback=True):
         log.debug('Downloaded image from url {}'.format(url))
 
     except Exception as e:
-        if fallback is True:
-            log.exception('Failed to get image for url {}'.format(url))
-            img = empty_image(rows, cols)
-        else:
-            raise IOError from e
+        try:
+            driver = webdriver.PhantomJS()
+            driver.set_window_size(cols, int(rows*1.4))
+            driver.get(url)
+            # sleep 2 seconds to
+            # allow javascript to load the image data and render it
+            # 2 seconds is just a guess.
+            time.sleep(2)
+            img = skimage.io.imread(io.BytesIO(driver.get_screenshot_as_png()))
+            img = img[-rows:, -cols:, :3]
+
+            log.debug('Downloaded with PhatomJS from url {}'.format(url))
+        except Exception as e:
+            if fallback is True:
+                log.exception('Failed to get image for url {}'.format(url))
+                img = empty_image(rows, cols)
+            else:
+                raise IOError from e
 
     return img
 
@@ -273,8 +288,12 @@ def save_image(output_path, overview_config=None):
     if cfg is None:
         cfg = {
             'img': {'rows': 480, 'cols': 640},
-            'stacked_image': {'rows': 3, 'cols': 4},
+            'stacked_image': {'rows': 4, 'cols': 4},
             'image_urls': [
+                'http://fact-project.org/smartfact/index.html?sound#current',
+                'http://fact-project.org/smartfact/index.html?sound#thresholds-patch',
+                'http://fact-project.org/smartfact/index.html?sound#camtemp',
+                'http://fact-project.org/smartfact/index.html?sound#fact',
                 'http://fact-project.org/cam/skycam.php',
                 'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg',
                 'http://www.magic.iac.es/site/weather/AllSkyCurrentImage.JPG',

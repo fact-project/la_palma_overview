@@ -22,12 +22,10 @@ import skimage.color
 import io
 import datetime as dt
 import numpy as np
-from matplotlib import pyplot as plt
-from matplotlib.font_manager import FontProperties
 import smart_fact_crawler as sfc
 import requests
 import logging
-import warnings
+from PIL import Image, ImageDraw, ImageFont
 
 from multiprocessing.pool import ThreadPool
 
@@ -46,89 +44,75 @@ def empty_image(rows, cols):
 
 def clock2img(rows, cols):
 
-    dpi = 96
-    fig = plt.figure(figsize=(cols/dpi, rows/dpi), dpi=dpi)
-    ax = plt.gca()
-    ax.yaxis.set_visible(False)
+    img = Image.new('RGB', (cols, rows))
 
-    ax.text(
-        0.5, 0.7, dt.datetime.utcnow().strftime('%H:%M:%S'),
-        horizontalalignment='center',
-        verticalalignment='center',
-        fontsize=100, color='red',
-        transform=ax.transAxes,
+    font_time = ImageFont.truetype('DejaVuSansMono.ttf', size=120)
+    font_date = ImageFont.truetype('DejaVuSansMono.ttf', size=100)
+    font_run = ImageFont.truetype('DejaVuSansMono.ttf', size=120)
+
+    d = ImageDraw.Draw(img)
+
+    now = dt.datetime.utcnow()
+
+    time = now.strftime('%H:%M:%S')
+    date = now.strftime('%Y-%m-%d')
+
+    w, h = d.textsize(time, font=font_time)
+    d.text(
+        ((cols - w) / 2, 0),
+        time,
+        font=font_time,
+        fill='red'
     )
 
-    ax.text(
-        0.5, 0.3, dt.datetime.utcnow().strftime('%Y.%m.%d'),
-        horizontalalignment='center',
-        verticalalignment='center',
-        fontsize=80, color='red',
-        transform=ax.transAxes,
+    w, h = d.textsize(date, font=font_date)
+    d.text(
+        ((cols - w) / 2, (rows - h) / 2),
+        date,
+        font=font_date,
+        anchor='center',
+        align='center',
+        fill='red'
     )
-
     try:
         run_id = sfc.main_page().run_id
         if run_id is not None:
-            ax.text(
-                0.5, 0.0, 'Run {0: 3d}'.format(run_id),
-                horizontalalignment='center',
-                verticalalignment='center',
-                fontsize=60, color='red',
-                transform=ax.transAxes,
+            run_str = 'Run {0: 3d}'.format(run_id)
+            w, h = d.textsize(run_str, font=font_run)
+            d.text(
+                ((cols - w) / 2, rows - h - 10),
+                run_str,
+                font=font_run,
+                anchor='top',
+                fill='red'
             )
-    except:
+    except Exception as e:
         log.exception("Could't get run_id.")
 
-    ax.spines['top'].set_color('none')
-    ax.spines['right'].set_color('none')
-    ax.spines['left'].set_color('none')
-    ax.xaxis.set_ticks_position('bottom')
-    ax.patch.set_facecolor('black')
-
-    buf = io.BytesIO()
-    plt.savefig(
-        buf,
-        format='png',
-        dpi=dpi,
-        transparent=False,
-        frameon=False,
-        facecolor='black',
-        edgecolor='none',
-    )
-    buf.seek(0)
-    plt.close(fig)
-
-    return (skimage.io.imread(buf)[:, :, 0:3]).astype('uint8')
+    return np.array(img, dtype='uint8')
 
 
 def smart_fact2img(rows, cols):
-
-    dpi = 96
-    fig = plt.figure(figsize=(cols/dpi, rows/dpi), dpi=dpi)
-    ax = plt.gca()
-    ax.yaxis.set_visible(False)
-
     currents = sfc.sipm_currents()
     drive_pointing = sfc.drive_pointing()
     weather = sfc.weather()
     rel_temp = sfc.camera_climate().relative_temperature_mean.value
     cam_temp = rel_temp + weather.temperature.value
 
-    out = (
+    status_text = (
         'SQM\n'
-        ' Magnitude.... {Magnitude:.1f}\n'
+        ' Magnitude..{Magnitude: > 6.1f}\n'
         'SIPM\n'
-        ' power........ {power:.1f} {power_unit:s} \n'
-        ' min med max.. {min_cur:.1f}, {med_cur:.1f}, {max_cur:.1f} {cur_unit:s}\n'
+        ' min........{min_cur: > 6.1f} {cur_unit}\n'
+        ' med........{med_cur: > 6.1f} {cur_unit}\n'
+        ' max........{max_cur: > 6.1f} {cur_unit}\n'
         'Temp\n'
-        ' outside...... {out_temp:.1f} C\n'
-        ' container.... {cont_temp:.1f} C\n'
-        ' camera....... {cam_temp:.1f} C\n'
-        'Source\n'
-        ' name......... {source_name}\n'
-        ' Azimuth...... {source_az:.1f} {source_az_unit:s}\n'
-        ' Zenith....... {source_zd:.1f} {source_zd_unit:s}\n'
+        ' outside....{out_temp: > 6.1f} C\n'
+        ' container..{cont_temp: > 6.1f} C\n'
+        ' camera.....{cam_temp: > 6.1f} C\n'
+        'Pointing: {source_name}\n'
+        ' Azimuth....{source_az: > 6.1f} {source_az_unit}\n'
+        ' Zenith.....{source_zd: > 6.1f} {source_zd_unit}\n'
     ).format(
         Magnitude=sfc.sqm().magnitude.value,
         power=currents.power.value,
@@ -147,37 +131,14 @@ def smart_fact2img(rows, cols):
         source_zd_unit=drive_pointing.zenith_distance.unit,
     )
 
-    font = FontProperties()
-    font.set_family('monospace')
-    ax.text(
-        0, 0.5, out,
-        verticalalignment='center',
-        fontsize=20, color='red',
-        horizontalalignment='left',
-        fontproperties=font,
-        transform=ax.transAxes,
-    )
+    img = Image.new('RGB', (cols, rows))
+    font = ImageFont.truetype('DejaVuSansMono.ttf', size=32)
 
-    ax.spines['top'].set_color('none')
-    ax.spines['right'].set_color('none')
-    ax.spines['left'].set_color('none')
-    ax.xaxis.set_ticks_position('bottom')
-    ax.patch.set_facecolor('black')
+    d = ImageDraw.Draw(img)
 
-    buf = io.BytesIO()
-    plt.savefig(
-        buf,
-        format='png',
-        dpi=dpi,
-        transparent=False,
-        frameon=False,
-        facecolor='black',
-        edgecolor='none',
-    )
-    buf.seek(0)
-    plt.close(fig)
+    d.text((10, 10), status_text, font=font, anchor='top', fill='red')
 
-    return (skimage.io.imread(buf)[:, :, 0:3]).astype('uint8')
+    return np.array(img, dtype='uint8')
 
 
 def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):

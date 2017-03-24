@@ -18,6 +18,7 @@ import docopt
 import skimage
 import skimage.io
 import skimage.transform
+import skimage.color
 import io
 import datetime as dt
 import numpy as np
@@ -214,7 +215,11 @@ def download_and_resize_image(url, rows, cols, fmt='jpg', fallback=True):
         req = requests.get(url, verify=False, timeout=15)
 
         img = skimage.io.imread(io.BytesIO(req.content), format=fmt)
-        img = skimage.transform.resize(img, (rows, cols, 3))
+
+        if img.ndim == 2:
+            img = skimage.color.gray2rgb(img)
+
+        img = skimage.transform.resize(img, (rows, cols))
         img = (img * 255).astype('uint8')
 
         log.debug('Downloaded image from url {}'.format(url))

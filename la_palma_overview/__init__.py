@@ -77,7 +77,7 @@ def clock2img(rows, cols):
     try:
         runs = sfc.observations(fallback=True).runs
 
-        if runs is not None:
+        if runs:
             last_run = runs[-1]
             if (dt.datetime.utcnow() - last_run.start) <= dt.timedelta(minutes=15):
                 run_str = 'Run {0: 3d}'.format(last_run.id)

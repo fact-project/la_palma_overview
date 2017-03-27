@@ -75,17 +75,21 @@ def clock2img(rows, cols):
         fill='red'
     )
     try:
-        run_id = sfc.main_page().run_id
-        if run_id is not None:
-            run_str = 'Run {0: 3d}'.format(run_id)
-            w, h = d.textsize(run_str, font=font_run)
-            d.text(
-                ((cols - w) / 2, rows - h - 10),
-                run_str,
-                font=font_run,
-                anchor='top',
-                fill='red'
-            )
+        runs = sfc.observations(fallback=True).runs
+
+        if runs is not None:
+            last_run = runs[-1]
+            if (dt.datetime.utcnow() - last_run.start) <= dt.timedelta(minutes=15):
+                run_str = 'Run {0: 3d}'.format(last_run.id)
+                w, h = d.textsize(run_str, font=font_run)
+                d.text(
+                    ((cols - w) / 2, rows - h - 10),
+                    run_str,
+                    font=font_run,
+                    anchor='top',
+                    fill='red'
+                )
+
     except Exception as e:
         log.exception("Could't get run_id.")
 
@@ -115,8 +119,8 @@ def smart_fact2img(rows, cols):
         ' Zenith.....{source_zd: > 6.1f} {source_zd_unit}\n'
     ).format(
         Magnitude=sfc.sqm().magnitude.value,
-        power=currents.power.value,
-        power_unit=currents.power.unit,
+        power=currents.power_camera.value,
+        power_unit=currents.power_camera.unit,
         min_cur=currents.min_per_sipm.value,
         med_cur=currents.median_per_sipm.value,
         max_cur=currents.max_per_sipm.value,

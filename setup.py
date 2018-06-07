@@ -19,7 +19,7 @@ setup(
         'docopt',
         'scikit-image',
         'requests',
-        'smart_fact_crawler==0.4.1',
+        'smart_fact_crawler==0.6.0',
         'send2trash',
         'pillow',
     ],

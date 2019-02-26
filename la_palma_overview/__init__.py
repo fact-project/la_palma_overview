@@ -250,15 +250,14 @@ def save_image(output_path, overview_config=None):
             'img': {'rows': 480, 'cols': 640},
             'stacked_image': {'rows': 3, 'cols': 4},
             'image_urls': [
-                'http://fact-project.org/cam/skycam.php',
+                'https://fact-project.org/cam/skycam.php',
                 'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg',
                 'http://www.magic.iac.es/site/weather/AllSkyCurrentImage.JPG',
                 'http://www.magic.iac.es/site/weather/can.jpg',
-                'http://www.fact-project.org/cam/cam.php',
-                'http://www.fact-project.org/cam/lidcam.php',
-                'http://iris.not.iac.es/axis-cgi/jpg/image.cgi',
+                'https://www.fact-project.org/cam/cam.php',
+                'https://www.fact-project.org/cam/lidcam.php',
+                'http://www.gtc.iac.es/multimedia/netcam/camaraExt.jpg',
                 'http://www.tng.iac.es/webcam/get.html?resolution=640x480&compression=30&clock=1&date=1&dummy=1456393525188',
-                # 'http://www.gtc.iac.es/multimedia/netcam/camaraExt.jpg',
                 'http://www.magic.iac.es/site/weather/lastHUM6t.jpg',
                 'http://www.magic.iac.es/site/weather/lastWPK6t.jpg'
             ]

@@ -177,14 +177,19 @@ def download_and_resize_image(url, rows, cols, fallback=True):
     the request fails, else an exception is raised
     '''
     try:
-        req = requests.get(url, verify=False, timeout=15)
+        req = requests.get(url, timeout=15)
 
         img = skimage.io.imread(io.BytesIO(req.content))
 
         if img.ndim == 2:
             img = skimage.color.gray2rgb(img)
 
-        img = skimage.transform.resize(img, (rows, cols))
+        img = skimage.transform.resize(
+            img,
+            (rows, cols),
+            anti_aliasing=True,
+            mode='reflect',
+        )
         img = (img * 255).astype('uint8')
 
         log.debug('Downloaded image from url {}'.format(url))

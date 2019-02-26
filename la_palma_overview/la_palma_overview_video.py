@@ -22,7 +22,7 @@ Options:
     --image-base=<dir>     Base directory for the images
     --video-subdir=<dir>   Subdirectory for the videos [default: ]
     --image-subdir=<dir>   Subdirectory for the images [default: images]
-    --start-time=<time>    Hour of UTC time before no images are downloaded [default=17]
+    --start-time=<time>    Hour of UTC time before no images are downloaded [default: 17]
     -t, --trash-images     Move images to trash after successfull video creation
     -v, --verbose          More verbose log output
     -l <f>, --logfile=<f>  If given, log also to file

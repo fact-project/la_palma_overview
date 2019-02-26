@@ -169,7 +169,7 @@ def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):
     return col_stack
 
 
-def download_and_resize_image(url, rows, cols, fmt='jpg', fallback=True):
+def download_and_resize_image(url, rows, cols, fallback=True):
     '''
     Download image at url.
     Resize to size cols x rows
@@ -179,7 +179,7 @@ def download_and_resize_image(url, rows, cols, fmt='jpg', fallback=True):
     try:
         req = requests.get(url, verify=False, timeout=15)
 
-        img = skimage.io.imread(io.BytesIO(req.content), format=fmt)
+        img = skimage.io.imread(io.BytesIO(req.content))
 
         if img.ndim == 2:
             img = skimage.color.gray2rgb(img)

@@ -21,7 +21,7 @@ setup(
         'requests',
         'smart_fact_crawler==0.6.0',
         'send2trash',
-        'pillow',
+        'pillow>=5',
     ],
     entry_points={'console_scripts': [
         'la_palma_overview = la_palma_overview.__init__:main',

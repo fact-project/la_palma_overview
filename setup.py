@@ -6,7 +6,7 @@ Also it can create nightly videos using libav and avconv.
 
 setup(
     name='la_palma_overview',
-    version='0.1.2',
+    version='0.1.3',
     description=description,
     url='https://github.com/fact-project/la_palma_overview.git',
     author='Sebastian Mueller,Maximilian Noethe',
@@ -19,7 +19,7 @@ setup(
         'docopt',
         'scikit-image',
         'requests',
-        'smart_fact_crawler==0.6.0',
+        'smart_fact_crawler~=0.6.4',
         'send2trash',
         'pillow',
     ],

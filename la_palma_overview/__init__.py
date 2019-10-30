@@ -97,28 +97,28 @@ def clock2img(rows, cols):
 
 
 def smart_fact2img(rows, cols):
-    currents = sfc.sipm_currents()
-    drive_pointing = sfc.drive_pointing()
-    weather = sfc.weather()
-    rel_temp = sfc.camera_climate().relative_temperature_mean.value
+    currents = sfc.sipm_currents(fallback=True)
+    drive_pointing = sfc.drive_pointing(fallback=True)
+    weather = sfc.weather(fallback=True)
+    rel_temp = sfc.camera_climate(fallback=True).relative_temperature_mean.value
     cam_temp = rel_temp + weather.temperature.value
+    humidity = weather.humidity.value
 
     status_text = (
-        'SQM\n'
-        ' Magnitude..{Magnitude: > 6.1f}\n'
         'SIPM\n'
-        ' min........{min_cur: > 6.1f} {cur_unit}\n'
-        ' med........{med_cur: > 6.1f} {cur_unit}\n'
-        ' max........{max_cur: > 6.1f} {cur_unit}\n'
+        ' min........{min_cur:6.1f} {cur_unit}\n'
+        ' med........{med_cur:6.1f} {cur_unit}\n'
+        ' max........{max_cur:6.1f} {cur_unit}\n'
         'Temp\n'
-        ' outside....{out_temp: > 6.1f} C\n'
-        ' container..{cont_temp: > 6.1f} C\n'
-        ' camera.....{cam_temp: > 6.1f} C\n'
+        ' outside....{out_temp:6.1f} °C\n'
+        ' container..{cont_temp:6.1f} °C\n'
+        ' camera.....{cam_temp:6.1f} °C\n'
+        'Weather\n'
+        ' humidity...{humidity:6.0f} %\n'
         'Pointing: {source_name}\n'
-        ' Azimuth....{source_az: > 6.1f} {source_az_unit}\n'
-        ' Zenith.....{source_zd: > 6.1f} {source_zd_unit}\n'
+        ' Azimuth....{source_az:6.1f} {source_az_unit}\n'
+        ' Zenith.....{source_zd:6.1f} {source_zd_unit}\n'
     ).format(
-        Magnitude=sfc.sqm().magnitude.value,
         power=currents.power_camera.value,
         power_unit=currents.power_camera.unit,
         min_cur=currents.min_per_sipm.value,
@@ -128,6 +128,7 @@ def smart_fact2img(rows, cols):
         out_temp=weather.temperature.value,
         cont_temp=float(sfc.container_temperature().current.value),
         cam_temp=cam_temp,
+        humidity=humidity,
         source_name=sfc.current_source().name,
         source_az=drive_pointing.azimuth.value,
         source_zd=drive_pointing.zenith_distance.value,
@@ -178,8 +179,8 @@ def download_and_resize_image(url, rows, cols, fallback=True):
     '''
     try:
         req = requests.get(url, timeout=15)
-
         img = skimage.io.imread(io.BytesIO(req.content))
+
 
         if img.ndim == 2:
             img = skimage.color.gray2rgb(img)
@@ -228,12 +229,12 @@ def save_image(output_path, overview_config=None):
             'stacked_image': {'rows': 3, 'cols': 4},
             'image_urls': [
                 'http://fact-project.org/cam/skycam.php',
-                'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg',
+                'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky',
                 'http://www.magic.iac.es/site/weather/AllSkyCurrentImage.JPG',
                 'http://www.magic.iac.es/site/weather/can.jpg',
                 'http://www.fact-project.org/cam/cam.php',
                 'http://www.fact-project.org/cam/lidcam.php',
-                'http://iris.not.iac.es/axis-cgi/jpg/image.cgi',
+                'http://www.not.iac.es/weather/img/domebig.jpg',
                 'http://www.gtc.iac.es/multimedia/netcam/camaraExt.jpg',
                 'http://www.magic.iac.es/site/weather/lastHUM6t.jpg',
                 'http://www.magic.iac.es/site/weather/lastWPK6t.jpg'
@@ -251,12 +252,12 @@ def save_image(output_path, overview_config=None):
             'stacked_image': {'rows': 3, 'cols': 4},
             'image_urls': [
                 'https://fact-project.org/cam/skycam.php',
-                'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg',
+                'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky',
                 'http://www.magic.iac.es/site/weather/AllSkyCurrentImage.JPG',
                 'http://www.magic.iac.es/site/weather/can.jpg',
                 'https://www.fact-project.org/cam/cam.php',
                 'https://www.fact-project.org/cam/lidcam.php',
-                'http://www.gtc.iac.es/multimedia/netcam/camaraExt.jpg',
+                'http://www.not.iac.es/weather/img/domebig.jpg',
                 'http://www.tng.iac.es/webcam/get.html?resolution=640x480&compression=30&clock=1&date=1&dummy=1456393525188',
                 'http://www.magic.iac.es/site/weather/lastHUM6t.jpg',
                 'http://www.magic.iac.es/site/weather/lastWPK6t.jpg'

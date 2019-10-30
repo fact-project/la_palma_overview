@@ -170,7 +170,7 @@ def stack_image_list_into_rows_and_cols(imgs, big_rows, big_cols):
     return col_stack
 
 
-def download_and_resize_image(url, rows, cols, fmt=None, fallback=True):
+def download_and_resize_image(url, rows, cols, fallback=True):
     '''
     Download image at url.
     Resize to size cols x rows
@@ -178,13 +178,19 @@ def download_and_resize_image(url, rows, cols, fmt=None, fallback=True):
     the request fails, else an exception is raised
     '''
     try:
-        req = requests.get(url, verify=False, timeout=15)
-        img = skimage.io.imread(io.BytesIO(req.content), format=fmt)
+        req = requests.get(url, timeout=15)
+        img = skimage.io.imread(io.BytesIO(req.content))
+
 
         if img.ndim == 2:
             img = skimage.color.gray2rgb(img)
 
-        img = skimage.transform.resize(img, (rows, cols))
+        img = skimage.transform.resize(
+            img,
+            (rows, cols),
+            anti_aliasing=True,
+            mode='reflect',
+        )
         img = (img * 255).astype('uint8')
 
         log.debug('Downloaded image from url {}'.format(url))
@@ -245,15 +251,14 @@ def save_image(output_path, overview_config=None):
             'img': {'rows': 480, 'cols': 640},
             'stacked_image': {'rows': 3, 'cols': 4},
             'image_urls': [
-                'http://fact-project.org/cam/skycam.php',
+                'https://fact-project.org/cam/skycam.php',
                 'http://www.gtc.iac.es/multimedia/netcam/camaraAllSky',
                 'http://www.magic.iac.es/site/weather/AllSkyCurrentImage.JPG',
                 'http://www.magic.iac.es/site/weather/can.jpg',
-                'http://www.fact-project.org/cam/cam.php',
-                'http://www.fact-project.org/cam/lidcam.php',
+                'https://www.fact-project.org/cam/cam.php',
+                'https://www.fact-project.org/cam/lidcam.php',
                 'http://www.not.iac.es/weather/img/domebig.jpg',
                 'http://www.tng.iac.es/webcam/get.html?resolution=640x480&compression=30&clock=1&date=1&dummy=1456393525188',
-                # 'http://www.gtc.iac.es/multimedia/netcam/camaraExt.jpg',
                 'http://www.magic.iac.es/site/weather/lastHUM6t.jpg',
                 'http://www.magic.iac.es/site/weather/lastWPK6t.jpg'
             ]

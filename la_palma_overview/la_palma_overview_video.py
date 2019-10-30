@@ -22,6 +22,7 @@ Options:
     --image-base=<dir>     Base directory for the images
     --video-subdir=<dir>   Subdirectory for the videos [default: ]
     --image-subdir=<dir>   Subdirectory for the images [default: images]
+    --start-time=<time>    Hour of UTC time before no images are downloaded [default: 17]
     -t, --trash-images     Move images to trash after successfull video creation
     -v, --verbose          More verbose log output
     -l <f>, --logfile=<f>  If given, log also to file
@@ -179,6 +180,7 @@ def la_palma_overview_video(
         image_base=None,
         image_subdir='images',
         trash_images=False,
+        start_time=17,
         ):
     '''
     Makes nightly summary videos of the Roque Observatry on La Palma.
@@ -223,7 +225,7 @@ def la_palma_overview_video(
 
     while True:
         now = datetime.utcnow()
-        if now.hour >= 17 or now.hour <= 7:
+        if now.hour >= start_time or now.hour <= 7:
             log.info('Getting image')
             save_image_to_date_path(image_base, image_subdir)
             log.info('done')
@@ -252,7 +254,8 @@ def main():
             video_subdir=arguments['--video-subdir'],
             image_base=arguments['--image-base'],
             image_subdir=arguments['--image-subdir'],
-            trash_images=arguments['--trash-images']
+            trash_images=arguments['--trash-images'],
+            start_time=int(arguments['--start-time']),
         )
 
     except docopt.DocoptExit as e:

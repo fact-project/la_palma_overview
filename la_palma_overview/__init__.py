@@ -97,28 +97,28 @@ def clock2img(rows, cols):
 
 
 def smart_fact2img(rows, cols):
-    currents = sfc.sipm_currents()
-    drive_pointing = sfc.drive_pointing()
-    weather = sfc.weather()
-    rel_temp = sfc.camera_climate().relative_temperature_mean.value
+    currents = sfc.sipm_currents(fallback=True)
+    drive_pointing = sfc.drive_pointing(fallback=True)
+    weather = sfc.weather(fallback=True)
+    rel_temp = sfc.camera_climate(fallback=True).relative_temperature_mean.value
     cam_temp = rel_temp + weather.temperature.value
+    humidity = weather.humidity.value
 
     status_text = (
-        'SQM\n'
-        ' Magnitude..{Magnitude: > 6.1f}\n'
         'SIPM\n'
-        ' min........{min_cur: > 6.1f} {cur_unit}\n'
-        ' med........{med_cur: > 6.1f} {cur_unit}\n'
-        ' max........{max_cur: > 6.1f} {cur_unit}\n'
+        ' min........{min_cur:6.1f} {cur_unit}\n'
+        ' med........{med_cur:6.1f} {cur_unit}\n'
+        ' max........{max_cur:6.1f} {cur_unit}\n'
         'Temp\n'
-        ' outside....{out_temp: > 6.1f} C\n'
-        ' container..{cont_temp: > 6.1f} C\n'
-        ' camera.....{cam_temp: > 6.1f} C\n'
+        ' outside....{out_temp:6.1f} °C\n'
+        ' container..{cont_temp:6.1f} °C\n'
+        ' camera.....{cam_temp:6.1f} °C\n'
+        'Weather\n'
+        ' humidity...{humidity:6.0f} %\n'
         'Pointing: {source_name}\n'
-        ' Azimuth....{source_az: > 6.1f} {source_az_unit}\n'
-        ' Zenith.....{source_zd: > 6.1f} {source_zd_unit}\n'
+        ' Azimuth....{source_az:6.1f} {source_az_unit}\n'
+        ' Zenith.....{source_zd:6.1f} {source_zd_unit}\n'
     ).format(
-        Magnitude=sfc.sqm().magnitude.value,
         power=currents.power_camera.value,
         power_unit=currents.power_camera.unit,
         min_cur=currents.min_per_sipm.value,
@@ -128,6 +128,7 @@ def smart_fact2img(rows, cols):
         out_temp=weather.temperature.value,
         cont_temp=float(sfc.container_temperature().current.value),
         cam_temp=cam_temp,
+        humidity=humidity,
         source_name=sfc.current_source().name,
         source_az=drive_pointing.azimuth.value,
         source_zd=drive_pointing.zenith_distance.value,

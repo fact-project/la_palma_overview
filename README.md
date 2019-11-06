@@ -3,6 +3,12 @@ Make nightly overview videos of the Roque observatory on La Palma or just save s
 
 ![img](example_images/overview.gif)
 
+## Dependencies
+Needs ```DejaVuSansMono.ttf```.
+```bash
+user@machine:~$ sudo apt-get install fonts-dejavu-core
+```
+
 ## Video
 ##### Usage
 ```bash

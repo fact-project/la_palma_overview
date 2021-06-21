@@ -56,9 +56,9 @@ lpo.save_image(output_path='/home/user/now_i_feel_better.jpg', overview_config=c
 
 ## Dependencies
 - [smart_fact_crawler](https://github.com/fact-project/smart_fact_crawler)
-- sci-kit image
+- scikit-image
 - send2trash
-- avconv from libav
+- ffmpeg
 
 ## How
 collects several different images as all sky cam footage:

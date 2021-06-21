@@ -70,7 +70,7 @@ def clock2img(rows, cols):
         ((cols - w) / 2, (rows - h) / 2),
         date,
         font=font_date,
-        anchor='center',
+        anchor='mm',  # middle horizontal, middle vertical
         align='center',
         fill='red'
     )
@@ -86,7 +86,7 @@ def clock2img(rows, cols):
                     ((cols - w) / 2, rows - h - 10),
                     run_str,
                     font=font_run,
-                    anchor='top',
+                    anchor='mt',  # middle horizontal, top vertical
                     fill='red'
                 )
 
@@ -140,8 +140,10 @@ def smart_fact2img(rows, cols):
     font = ImageFont.truetype('DejaVuSansMono.ttf', size=32)
 
     d = ImageDraw.Draw(img)
-
-    d.text((10, 10), status_text, font=font, anchor='top', fill='red')
+    # left aligned horizontally, top aligned  vertically
+    # a means ascender of the first line, which is the top of the string
+    anchor = 'la'
+    d.text((10, 10), status_text, font=font, anchor=anchor, fill='red')
 
     return np.array(img, dtype='uint8')
 

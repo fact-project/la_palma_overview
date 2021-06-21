@@ -1,12 +1,12 @@
 from distutils.core import setup
 
 description = '''Acquires images of La Palma and stacks them into one image.
-Also it can create nightly videos using libav and avconv.
+It can also create nightly videos using ffmpeg.
 '''
 
 setup(
     name='la_palma_overview',
-    version='0.1.4',
+    version='0.2.0',
     description=description,
     url='https://github.com/fact-project/la_palma_overview.git',
     author='Sebastian Mueller,Maximilian Noethe',
@@ -19,9 +19,9 @@ setup(
         'docopt',
         'scikit-image',
         'requests',
-        'smart_fact_crawler~=0.6.4',
+        'smart_fact_crawler @ https://github.com/fact-project/smart_fact_crawler/archive/v0.7.0.tar.gz',
         'send2trash',
-        'pillow>=5',
+        'pillow>=8',
     ],
     entry_points={'console_scripts': [
         'la_palma_overview = la_palma_overview.__init__:main',
